@@ -46,6 +46,10 @@ DENY = [
 
 ASK = [
     (
+        r"rebuild_layer\.py\b.*--apply",
+        "Layer rebuild deletes CETAS tables and lake folders",
+    ),
+    (
         r"\bgit\s+(push|commit|merge|tag)\b",
         "Git publish action (commit/push/merge/tag)",
     ),

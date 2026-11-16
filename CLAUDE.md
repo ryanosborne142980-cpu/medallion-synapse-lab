@@ -102,8 +102,8 @@ docs/           decisions.md (design log), data_contracts.md (grain/keys per tab
 
 **Python** (plumbing only; transforms live in SQL)
 - `from __future__ import annotations`, type hints, module docstring with usage examples.
-- Scripts: stdlib + `pyodbc`. Local Parquet inspection: `duckdb` / `pyarrow`. No pandas in
-  scripts (fine for ad-hoc notebooks). Pin deps in `requirements.txt`; use `.venv/`.
+- Scripts: stdlib + `pyodbc` only. No pandas in scripts (fine for ad-hoc notebooks). Pin
+  deps in `requirements.txt`; use `.venv/`.
 - Fail with `SystemExit("clear message")`, not stack traces, for expected errors.
 - Format/lint with `ruff`.
 
@@ -124,7 +124,9 @@ docs/           decisions.md (design log), data_contracts.md (grain/keys per tab
 **Testing**
 - No unit-test framework. `sql/90_checks.sql` asserts: row counts per layer vs
   `_manifest.json`, `id` uniqueness in silver, no orphan keys in gold facts.
-- Validate new SQL logic locally with DuckDB on `data/landing/` before running in Synapse.
+- Prototype directly in Synapse with `run_sql.py -q` (cheap at this data size, D5); use
+  `TOP` and `ingest_date` filters while exploring. Don't use the user's local SQL Server
+  for this project.
 
 ## Do's and Don'ts
 
@@ -159,6 +161,9 @@ python scripts/download_openfema.py       # snapshot OpenFEMA datasets to data/l
 python scripts/run_sql.py sql/00_setup.sql --database master
 python scripts/run_sql.py sql/10_bronze.sql sql/20_silver.sql
 python scripts/run_sql.py -q "SELECT COUNT(*) FROM bronze.nfip_claims"
+
+python scripts/rebuild_layer.py silver                       # dry run: tables + folders to delete
+python scripts/rebuild_layer.py silver --apply --rerun-check # rebuild, prove idempotent, run checks
 ```
 
 ## Workflow Guidelines
@@ -176,7 +181,8 @@ python scripts/run_sql.py -q "SELECT COUNT(*) FROM bronze.nfip_claims"
   Conventional Commits `type(scope): description` (scopes: `infra`, `ingest`, `bronze`,
   `silver`, `gold`, `checks`, `report`, `docs`, `claude`).
 - Slash commands: `/verify` checks, `/grill` adversarial branch review, `/commit-pr` commit +
-  PR (never merges), `/learn` record a lesson, `/prune` shrink this file.
+  PR (never merges), `/learn` record a lesson, `/prune` shrink this file, `/rebuild <layer>`
+  safe silver/gold rebuild (never hand-roll CETAS cleanup).
 - When the user corrects you, offer `/learn` so it isn't repeated.
 - Hooks (`.claude/hooks/hooks.py`) prompt on deploy/teardown/DROP/git publish from the
   command line, but **not** DROPs inside `.sql` files run by `run_sql.py`; review those.

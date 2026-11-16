@@ -20,12 +20,18 @@ Record each design decision when it is made. Newest first. Keep entries short.
 
 ## Decisions
 
-### D5: Python stays thin; DuckDB for local checks (2026-11-16)
-- **Context:** Whether to use pandas or other libraries in scripts.
-- **Decision:** Scripts use stdlib + `pyodbc`. `duckdb`/`pyarrow` allowed for local Parquet
-  inspection and prototyping SQL. pandas only in ad-hoc notebooks.
-- **Why:** All transforms run in Synapse SQL; Python only moves files and runs queries.
-  DuckDB practises the same SQL skills locally.
+### D5: Python stays thin; prototype SQL directly in Synapse (2026-11-16)
+- **Context:** Whether to use pandas, and where to prototype SQL before committing it.
+- **Options:** A) DuckDB on local Parquet B) local SQL Server 2025 sandbox C) Synapse directly.
+- **Decision:** C. Scripts use stdlib + `pyodbc` only. pandas only in ad-hoc notebooks.
+- **Why:** Serverless bills ~$5/TB scanned (10 MB minimum per query); the full claims
+  dataset is ~100 MB, so even 1,000 full-scan queries cost ~$0.50, with no idle cost. A local
+  sandbox adds a load script, a second database, and dialect drift, and skips the
+  Synapse-specific lessons (Parquet type inference, collation, `filepath()`, CETAS) that are
+  the point of the lab.
+- **Consequences:** Every query, including experiments, runs in Azure, so the workspace must
+  be deployed to work. Prefer `TOP`/partition filters while exploring. The user's local
+  SQL Server is not part of this project.
 
 ### D4: Database collation `Latin1_General_100_BIN2_UTF8` (2026-11-16)
 - **Why:** Required for correct UTF-8 string reads from Parquet and predicate pushdown in
