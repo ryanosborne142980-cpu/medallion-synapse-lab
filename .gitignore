@@ -1,0 +1,15 @@
+# Raw downloads stay out of git
+data/
+raw_files/
+
+# Compiled Bicep output
+infra/**/*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Local env and secrets
+.env
+*.local.*
