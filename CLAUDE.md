@@ -62,6 +62,11 @@ _Last updated: 2026-11-16_
   without asking.
 - **Entra auth only.** No account keys, SAS tokens, or SQL logins.
 - **Everything as code.** Infra in Bicep, transforms in versioned `.sql` files, re-runnable.
+- **Snapshot ID = `ingest_date` (UTC), one per day.** Re-running a finished date is refused;
+  an interrupted run resumes (the `one FEMA asOfDate per snapshot` check catches a resume
+  that mixed FEMA versions: delete and re-download). `--filter` pulls go to `data/samples/`,
+  never `landing/`. No table format (Iceberg/Delta) needed while landing is immutable and
+  silver/gold are full rebuilds.
 - **Snapshots, not deltas, at landing.** Each download is a full snapshot under
   `ingest_date`; silver keeps the latest `ingest_date` per `id` (OpenFEMA has no per-record
   change timestamp).

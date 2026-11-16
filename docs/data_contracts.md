@@ -20,7 +20,9 @@ One entry per table or view. Update when one is added or its grain, keys, or col
 - **Layer:** landing (files in `lake/landing/nfip_claims/ingest_date=YYYY-MM-DD/`)
 - **Source:** `https://www.fema.gov/api/open/v3/NfipClaims`, paged 10,000 rows ordered by `id`
 - **Grain:** one row per claim per snapshot. **Key:** `id` (unique within a snapshot)
-- **Load pattern:** full snapshot per run; `_manifest.json` holds `record_count`, `rejected`
+- **Load pattern:** full snapshot per run, one per UTC date; `_manifest.json` (written last)
+  holds `record_count`, `rejected`. Filtered pulls land in `data/samples/`, never here.
+- **Snapshot consistency:** all rows in a snapshot share one `asOfDate` (checked)
 - **Known quirks:** FEMA's Parquet export types `numberOfUnits` as INT16; records with larger
   values break the export. The downloader splits such pages down and saves each bad record
   as JSONL in `_rejected/` (2 in 2026-11-16: `numberOfUnits` 99999 and 34970).
@@ -49,6 +51,9 @@ One entry per table or view. Update when one is added or its grain, keys, or col
 ### `bronze.disaster_declarations`
 - **Layer:** bronze (view, `sql/10_bronze.sql`)
 - **Grain:** one row per declaration per designated area per snapshot. **Key:** (`id`, `ingest_date`)
+- **Natural key:** (`disasterNumber`, `fipsStateCode`, `placeCode`), unique (checked).
+  (`disasterNumber`, county FIPS) is **not** unique: 1,555 rows share a county within a
+  disaster (tribal areas, statewide `000`). Joining claims on county alone fans out.
 - **Columns:** 29 source columns as received (`id` is a GUID string) + `ingest_date`, `source_file`
 - **Quality rules:** as above
 - **Verified 2026-11-16:** 70,599 rows

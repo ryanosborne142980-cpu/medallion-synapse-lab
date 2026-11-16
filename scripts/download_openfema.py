@@ -39,7 +39,12 @@ def fetch(url: str, retries: int = 5) -> bytes:
         try:
             with urllib.request.urlopen(request, timeout=120) as response:
                 return response.read()
-        except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError) as exc:
+        except (
+            urllib.error.URLError,
+            http.client.HTTPException,
+            ConnectionError,
+            TimeoutError,
+        ) as exc:
             status = getattr(exc, "code", None)
             if status is not None and 400 <= status < 500 and status != 429:
                 raise
@@ -70,13 +75,20 @@ def is_complete_parquet(body: bytes) -> bool:
 
 
 def page_url(base: str, skip: int, top: int, fmt: str, filter_expr: str | None) -> str:
-    params: dict[str, str | int] = {"top": top, "skip": skip, "orderby": "id", "format": fmt}
+    params: dict[str, str | int] = {
+        "top": top,
+        "skip": skip,
+        "orderby": "id",
+        "format": fmt,
+    }
     if filter_expr:
         params["filter"] = filter_expr
     return query_url(base, **params)
 
 
-def try_parquet(base: str, skip: int, top: int, filter_expr: str | None, retries: int) -> bytes | None:
+def try_parquet(
+    base: str, skip: int, top: int, filter_expr: str | None, retries: int
+) -> bytes | None:
     """Return a complete Parquet body, or None if the server truncates it."""
     try:
         body = fetch(page_url(base, skip, top, "parquet", filter_expr), retries)
@@ -84,13 +96,24 @@ def try_parquet(base: str, skip: int, top: int, filter_expr: str | None, retries
         if 400 <= exc.code < 500 and exc.code != 429:
             raise
         return None
-    except (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError):
+    except (
+        urllib.error.URLError,
+        http.client.HTTPException,
+        ConnectionError,
+        TimeoutError,
+    ):
         return None
     return body if is_complete_parquet(body) else None
 
 
-def fetch_range(base: str, skip: int, top: int, filter_expr: str | None, retries: int,
-                rejected: list[dict]) -> list[tuple[int, bytes]]:
+def fetch_range(
+    base: str,
+    skip: int,
+    top: int,
+    filter_expr: str | None,
+    retries: int,
+    rejected: list[dict],
+) -> list[tuple[int, bytes]]:
     """Fetch rows [skip, skip+top) as Parquet segments.
 
     OpenFEMA's Parquet export truncates the response when a page contains certain
@@ -102,25 +125,47 @@ def fetch_range(base: str, skip: int, top: int, filter_expr: str | None, retries
     if body is not None:
         return [(skip, body)]
     if top == 1:
-        line = fetch(page_url(base, skip, 1, "jsonl", filter_expr)).decode("utf-8").strip()
+        line = (
+            fetch(page_url(base, skip, 1, "jsonl", filter_expr)).decode("utf-8").strip()
+        )
         record_id = json.loads(line).get("id") if line else None
-        rejected.append({"offset": skip, "id": record_id, "jsonl": line,
-                         "reason": "server Parquet export truncated; captured as JSONL"})
-        print(f"    rejected offset {skip} (id {record_id}): Parquet export fails for this record")
+        rejected.append(
+            {
+                "offset": skip,
+                "id": record_id,
+                "jsonl": line,
+                "reason": "server Parquet export truncated; captured as JSONL",
+            }
+        )
+        print(
+            f"    rejected offset {skip} (id {record_id}): Parquet export fails for this record"
+        )
         return []
     step = max(1, top // 10)
     segments: list[tuple[int, bytes]] = []
     for sub in range(skip, skip + top, step):
-        segments += fetch_range(base, sub, min(step, skip + top - sub), filter_expr, 2, rejected)
+        segments += fetch_range(
+            base, sub, min(step, skip + top - sub), filter_expr, 2, rejected
+        )
     return segments
 
 
-def download(dataset: str, out_root: Path, ingest_date: str, page_size: int,
-             filter_expr: str | None) -> Path:
+def download(
+    dataset: str,
+    out_root: Path,
+    ingest_date: str,
+    page_size: int,
+    filter_expr: str | None,
+) -> Path:
     base = DATASETS[dataset]
-    target = out_root / "landing" / dataset / f"ingest_date={ingest_date}"
+    # Filtered pulls are samples, not snapshots: keep them out of landing/ so the upload
+    # script (which only reads data/landing) can never publish one as a full snapshot.
+    zone = "samples" if filter_expr else "landing"
+    target = out_root / zone / dataset / f"ingest_date={ingest_date}"
     if (target / "_manifest.json").exists():
-        raise SystemExit(f"{target} is already complete; delete it or pick another --ingest-date")
+        raise SystemExit(
+            f"{target} is already complete; delete it or pick another --ingest-date"
+        )
     # No manifest means an interrupted run: finished pages are kept and skipped below.
     target.mkdir(parents=True, exist_ok=True)
     rejected_dir = target / "_rejected"
@@ -129,19 +174,25 @@ def download(dataset: str, out_root: Path, ingest_date: str, page_size: int,
     pages = (total + page_size - 1) // page_size
     print(f"{dataset}: {total:,} records in {pages} pages -> {target}")
 
-    started = dt.datetime.now(dt.timezone.utc)
+    started = dt.datetime.now(dt.UTC)
     for page in range(pages):
         part = target / f"part-{page:05d}.parquet"
         split_marker = target / f"_split-{page:05d}.json"
-        if split_marker.exists() or (part.exists() and is_complete_parquet(part.read_bytes())):
+        if split_marker.exists() or (
+            part.exists() and is_complete_parquet(part.read_bytes())
+        ):
             print(f"  page {page + 1}/{pages}  already downloaded, skipping")
             continue
 
         rejected: list[dict] = []
-        segments = fetch_range(base, page * page_size, page_size, filter_expr, 5, rejected)
+        segments = fetch_range(
+            base, page * page_size, page_size, filter_expr, 5, rejected
+        )
         if len(segments) == 1 and not rejected:
             part.write_bytes(segments[0][1])
-            print(f"  page {page + 1}/{pages}  {len(segments[0][1]) / 1_048_576:.1f} MB")
+            print(
+                f"  page {page + 1}/{pages}  {len(segments[0][1]) / 1_048_576:.1f} MB"
+            )
             continue
 
         # Split page: write each segment, then the rejected records, then the marker last
@@ -151,14 +202,30 @@ def download(dataset: str, out_root: Path, ingest_date: str, page_size: int,
         if rejected:
             rejected_dir.mkdir(exist_ok=True)
             for item in rejected:
-                (rejected_dir / f"offset-{item['offset']:09d}.jsonl").write_text(item["jsonl"] + "\n")
-        split_marker.write_text(json.dumps(
-            {"page": page, "segments": [s for s, _ in segments],
-             "rejected": [{k: v for k, v in r.items() if k != "jsonl"} for r in rejected]}, indent=2))
-        print(f"  page {page + 1}/{pages}  split into {len(segments)} segments, {len(rejected)} rejected")
+                (rejected_dir / f"offset-{item['offset']:09d}.jsonl").write_text(
+                    item["jsonl"] + "\n"
+                )
+        split_marker.write_text(
+            json.dumps(
+                {
+                    "page": page,
+                    "segments": [s for s, _ in segments],
+                    "rejected": [
+                        {k: v for k, v in r.items() if k != "jsonl"} for r in rejected
+                    ],
+                },
+                indent=2,
+            )
+        )
+        print(
+            f"  page {page + 1}/{pages}  split into {len(segments)} segments, {len(rejected)} rejected"
+        )
 
-    rejected_all = [r for marker in sorted(target.glob("_split-*.json"))
-                    for r in json.loads(marker.read_text())["rejected"]]
+    rejected_all = [
+        r
+        for marker in sorted(target.glob("_split-*.json"))
+        for r in json.loads(marker.read_text())["rejected"]
+    ]
     total_bytes = sum(p.stat().st_size for p in target.glob("*.parquet"))
     manifest = {
         "dataset": dataset,
@@ -172,7 +239,7 @@ def download(dataset: str, out_root: Path, ingest_date: str, page_size: int,
         "bytes": total_bytes,
         "ingest_date": ingest_date,
         "started_utc": started.isoformat(),
-        "finished_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "finished_utc": dt.datetime.now(dt.UTC).isoformat(),
     }
     # Underscore prefix: serverless SQL wildcards like *.parquet won't pick it up.
     (target / "_manifest.json").write_text(json.dumps(manifest, indent=2))
@@ -182,14 +249,29 @@ def download(dataset: str, out_root: Path, ingest_date: str, page_size: int,
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("datasets", nargs="*", metavar="dataset",
-                        help=f"datasets to download: {', '.join(DATASETS)} (default: all)")
-    parser.add_argument("--out", type=Path, default=Path("data"), help="local root folder")
-    parser.add_argument("--ingest-date", default=dt.date.today().isoformat(),
-                        help="snapshot date used in the folder name (YYYY-MM-DD)")
-    parser.add_argument("--page-size", type=int, default=10_000, help="rows per API page (max 10000)")
-    parser.add_argument("--filter", dest="filter_expr",
-                        help="OData filter, e.g. \"yearOfLoss ge 2015\" for a smaller sample")
+    parser.add_argument(
+        "datasets",
+        nargs="*",
+        metavar="dataset",
+        help=f"datasets to download: {', '.join(DATASETS)} (default: all)",
+    )
+    parser.add_argument(
+        "--out", type=Path, default=Path("data"), help="local root folder"
+    )
+    parser.add_argument(
+        "--ingest-date",
+        default=dt.datetime.now(dt.UTC).date().isoformat(),
+        help="snapshot date used in the folder name (YYYY-MM-DD, default: today in UTC)",
+    )
+    parser.add_argument(
+        "--page-size", type=int, default=10_000, help="rows per API page (max 10000)"
+    )
+    parser.add_argument(
+        "--filter",
+        dest="filter_expr",
+        help='OData filter, e.g. "yearOfLoss ge 2015". Written to <out>/samples/, never '
+        "landing/, because a filtered pull is not a full snapshot",
+    )
     args = parser.parse_args()
 
     unknown = set(args.datasets) - set(DATASETS)

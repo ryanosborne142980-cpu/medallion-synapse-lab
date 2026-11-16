@@ -38,6 +38,20 @@ WITH counts AS (
     SELECT 'disaster_declarations', ingest_date,
            COUNT_BIG(*), COUNT_BIG(*) - COUNT_BIG(DISTINCT id), 0
     FROM bronze.disaster_declarations GROUP BY ingest_date
+),
+-- One FEMA data date (asOfDate) per snapshot. Two values mean FEMA refreshed its data while
+-- the download ran (e.g. an interrupted run resumed later), so the snapshot mixes versions
+-- and offset paging may have skipped or repeated records. Fix: delete it and re-download.
+as_of AS (
+    SELECT 'nfip_claims' AS dataset, ingest_date, COUNT_BIG(DISTINCT asOfDate) AS versions
+    FROM bronze.nfip_claims GROUP BY ingest_date
+),
+-- Natural key: id is a random GUID, so also prove one row per disaster x state x place.
+-- (disaster x county is NOT unique: several areas can share a county, e.g. tribal areas.)
+natural_keys AS (
+    SELECT 'disaster_declarations' AS dataset, ingest_date,
+           COUNT_BIG(*) - COUNT_BIG(DISTINCT CONCAT(disasterNumber, '|', fipsStateCode, '|', placeCode)) AS dupes
+    FROM bronze.disaster_declarations GROUP BY ingest_date
 )
 -- Bronze rows per snapshot = manifest record_count (nothing quarantined in bronze).
 SELECT 'bronze' AS layer, 'row_count = manifest' AS check_name, m.dataset, m.ingest_date,
@@ -51,7 +65,13 @@ FROM qa.manifest AS m LEFT JOIN counts AS c ON c.dataset = m.dataset AND c.inges
 UNION ALL
 -- id unique within each snapshot.
 SELECT 'bronze', 'duplicate ids per snapshot', c.dataset, c.ingest_date, 0, c.dupes
-FROM counts AS c;
+FROM counts AS c
+UNION ALL
+SELECT 'bronze', 'duplicate natural keys per snapshot', k.dataset, k.ingest_date, 0, k.dupes
+FROM natural_keys AS k
+UNION ALL
+SELECT 'bronze', 'one FEMA asOfDate per snapshot', a.dataset, a.ingest_date, 1, a.versions
+FROM as_of AS a;
 GO
 
 -- ===== Bronze: possible string truncation =====
