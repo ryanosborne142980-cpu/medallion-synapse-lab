@@ -8,7 +8,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Location = 'eastus2',
+    [string]$Location = 'centralus',
     [switch]$WhatIf,
     [switch]$DeploySparkPool,
     [switch]$SkipBudget

@@ -2,7 +2,7 @@ using './main.bicep'
 
 // Values come from environment variables set by scripts/deploy.ps1 so that the
 // client IP, object ID, and generated password never land in a committed file.
-param location = readEnvironmentVariable('LAB_LOCATION', 'eastus2')
+param location = readEnvironmentVariable('LAB_LOCATION', 'centralus')
 param clientIp = readEnvironmentVariable('LAB_CLIENT_IP')
 param userObjectId = readEnvironmentVariable('LAB_USER_OBJECT_ID')
 param sqlAdminPassword = readEnvironmentVariable('LAB_SQL_ADMIN_PASSWORD')

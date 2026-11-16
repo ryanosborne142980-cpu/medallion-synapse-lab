@@ -1,8 +1,8 @@
 // Subscription-scope entry point: resource group, cost guardrail, then the lab resources.
 targetScope = 'subscription'
 
-@description('Azure region for all resources.')
-param location string = 'eastus2'
+@description('Azure region for all resources. eastus2 refused new Synapse SQL capacity for this subscription (Nov 2026).')
+param location string = 'centralus'
 
 @description('Resource group that holds everything in the lab. Delete it to tear the lab down.')
 param resourceGroupName string = 'rg-medallion-lab'
