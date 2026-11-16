@@ -53,7 +53,9 @@ _Last updated: 2026-11-16_
 3. Gold star schema, then Power BI Desktop report.
 
 **Open decisions**: see `## Open decisions` in [docs/decisions.md](docs/decisions.md)
-(currently: how to handle the 2 rejected NFIP records).
+(currently: numberOfUnits outliers, and the proposed Fabric-parity ingestion plan in
+[docs/fabric_parity_plan.md](docs/fabric_parity_plan.md): design only, nothing built, needs
+approval because it conflicts with the Core Principles).
 
 ## Core Principles
 

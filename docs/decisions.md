@@ -13,6 +13,11 @@ Record each design decision when it is made. Newest first. Keep entries short.
 
 ## Open decisions
 
+- **Fabric-parity ingestion** (proposed 2026-11-16): ADF pipelines with an Azure SQL control
+  table, Spark notebooks writing Delta bronze/silver/gold. Conflicts with the "no table format",
+  "serverless only", and "no new always-on resources" principles. Details and conflicts in
+  [fabric_parity_plan.md](fabric_parity_plan.md). Needs a decision before any build.
+
 - **`numberOfUnits` outliers** (silver): values 99999 and 34970 on the two recovered claims.
   99999 looks like a FEMA "unknown" sentinel; 34970 may be real or a data-entry error.
   Decide in silver: keep, null out sentinel with a flag, or cap. Check how often each occurs.
