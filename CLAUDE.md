@@ -46,8 +46,9 @@ _Last updated: 2026-11-16_
 - `disaster_declarations`: 70,599 records, 8 pages, 0 rejected.
 
 **Next**
-1. Silver design: snake_case names, types/codes conformed, latest `ingest_date` per `id`,
-   quarantine rules, `numberOfUnits` outliers (open decision). Plan + plan-reviewer first.
+1. Silver design in [docs/silver_design.md](docs/silver_design.md), one section at a time.
+   §1 names/types PROPOSED (awaiting user review); then §2 codes, §3 latest-per-id,
+   §4 quality rules, §5 `condo_units` outliers. Plan-reviewer before writing SQL.
 2. `sql/20_silver.sql` via CETAS; first real use of `/rebuild silver`.
 3. Gold star schema, then Power BI Desktop report.
 
@@ -223,5 +224,7 @@ TODO
 - [README.md](README.md): infra overview and setup
 - [docs/decisions.md](docs/decisions.md): design decisions and open questions
 - [docs/data_contracts.md](docs/data_contracts.md): grain, keys, quirks per dataset/table
+- [docs/reference/](docs/reference/): FEMA's official field definitions and code legends
+  (from the OpenFEMA `OpenFemaDataSetFields` API); check meanings here, don't guess
 - [scripts/run_sql.py](scripts/run_sql.py): GO batching and `$(var)` substitution rules
 - [scripts/download_openfema.py](scripts/download_openfema.py): why API paging instead of the bulk file
