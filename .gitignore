@@ -10,6 +10,17 @@ __pycache__/
 *.pyc
 .venv/
 
-# Local env and secrets
+# Local env and secrets (*.local.* also covers .claude/settings.local.json)
 .env
+.env.*
+!.env.example
+*.pem
+*.pfx
+*.key
 *.local.*
+
+# Tool caches
+.ruff_cache/
+.pytest_cache/
+.ipynb_checkpoints/
+.azure/

@@ -44,9 +44,8 @@ _Last updated: 2026-11-16_
 3. Bronze layer over `landing/`, then silver (latest `ingest_date` per `id`), then gold.
 4. Power BI Desktop report on the gold schema.
 
-**Open questions / decisions pending**
-- How to handle the 2 rejected JSONL records (ignore, load separately, or patch into bronze)?
-- TODO
+**Open decisions**: see `## Open decisions` in [docs/decisions.md](docs/decisions.md)
+(currently: how to handle the 2 rejected NFIP records).
 
 ## Core Principles
 
@@ -58,7 +57,17 @@ _Last updated: 2026-11-16_
 - **Snapshots, not deltas, at landing.** Each download is a full snapshot partitioned by
   `ingest_date`; silver keeps the latest `ingest_date` per `id` (OpenFEMA has no per-record
   change timestamp).
-- TODO: more?
+- **One layer at a time**, then stop for review. Ask, don't guess, on grain, keys, dedup
+  rules, and business definitions.
+
+### Data rules
+- Every SQL file is idempotent: rerunning from scratch gives the same result, no duplicates.
+  `ingest_date` is the batch ID; carry it through to silver.
+- Bronze keeps data as received. Type and conform in silver. Business logic only in gold.
+- Never silently drop rows. Failing rows go to a quarantine view/folder with the rule name.
+  Reconcile: source (`_manifest.json` `record_count`) = loaded + quarantined.
+- Don't present derived values as source facts; name or flag them.
+- Timestamps are UTC unless a contract says otherwise.
 
 ## Architecture Overview
 
@@ -67,6 +76,8 @@ infra/          Bicep (subscription scope): main.bicep, main.bicepparam, modules
 scripts/        deploy.ps1, teardown.ps1, upload_landing.ps1, download_openfema.py, run_sql.py
 sql/            (planned) numbered SQL scripts per layer, GO-batched, $(var) sqlcmd variables
 data/landing/   local raw downloads, gitignored; mirrors lake/landing/ layout
+docs/           decisions.md (design log), data_contracts.md (grain/keys per table)
+.claude/        settings.json, hooks/hooks.py (safety guard, ruff format), commands/, agents/
 ```
 
 ### Layers (container `lake`, lab database on serverless SQL)
@@ -155,14 +166,33 @@ python scripts/run_sql.py -q "SELECT COUNT(*) FROM bronze.nfip_claims"
 - Update **Where we left off** automatically, without being asked, after any meaningful
   milestone and before ending a session: date, done, live state, next, open questions.
   Verify live state (`az`, `run_sql.py`) rather than assuming it.
-- TODO: commit style, branching.
+- Multi-step, schema, or infra work: plan first, have the `plan-reviewer` agent review it,
+  fix blocking issues, then ask the user to approve.
+- Record design decisions in `docs/decisions.md`; grain/keys/load pattern per table in
+  `docs/data_contracts.md`. Update both in the same change as the SQL.
+- **Ask first** before: commit, push, PR, merge; destructive DDL or lake deletes; deploy or
+  teardown. Never force-push `main`. Check `git status` first; never discard user changes.
+- Git: `main` is trunk; short-lived `type/short-description` branches merged by PR.
+  Conventional Commits `type(scope): description` (scopes: `infra`, `ingest`, `bronze`,
+  `silver`, `gold`, `checks`, `report`, `docs`, `claude`).
+- Slash commands: `/verify` checks, `/grill` adversarial branch review, `/commit-pr` commit +
+  PR (never merges), `/learn` record a lesson, `/prune` shrink this file.
+- When the user corrects you, offer `/learn` so it isn't repeated.
+- Hooks (`.claude/hooks/hooks.py`) prompt on deploy/teardown/DROP/git publish from the
+  command line, but **not** DROPs inside `.sql` files run by `run_sql.py`; review those.
 
 ## Example Snippets
 
 TODO
 
+## Lessons
+
+<!-- One line per lesson: imperative rule + short reason. Max 15. Add with /learn. -->
+
 ## References
 
 - [README.md](README.md): infra overview and setup
+- [docs/decisions.md](docs/decisions.md): design decisions and open questions
+- [docs/data_contracts.md](docs/data_contracts.md): grain, keys, quirks per dataset/table
 - [scripts/run_sql.py](scripts/run_sql.py): GO batching and `$(var)` substitution rules
 - [scripts/download_openfema.py](scripts/download_openfema.py): why API paging instead of the bulk file
