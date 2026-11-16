@@ -13,12 +13,26 @@ Record each design decision when it is made. Newest first. Keep entries short.
 
 ## Open decisions
 
-- **Rejected NFIP records.** 2 records (ids 8320694, 9053654) in the 2026-11-16 snapshot came
-  back as truncated Parquet and were saved as JSONL in `_rejected/`. Options: A) ignore and
-  document, B) read the JSONL in a separate bronze view and `UNION` it, C) convert to Parquet
-  in the downloader. Must keep reconciliation honest: source = loaded + quarantined.
+- **`numberOfUnits` outliers** (silver): values 99999 and 34970 on the two recovered claims.
+  99999 looks like a FEMA "unknown" sentinel; 34970 may be real or a data-entry error.
+  Decide in silver: keep, null out sentinel with a flag, or cap. Check how often each occurs.
 
 ## Decisions
+
+### D6: Recover rejected NFIP records from JSONL in bronze (2026-11-16)
+- **Context:** 2 records (ids 8320694, 9053654) broke FEMA's server-side Parquet export and
+  were saved by the downloader as JSONL in `_rejected/`.
+- **Root cause (found while building bronze):** FEMA types `numberOfUnits` as INT16 in its
+  Parquet export; these records hold 99999 and 34970, which overflow it.
+- **Options:** A) ignore and document B) read the JSONL in bronze and `UNION ALL` it
+  C) convert to Parquet in the downloader.
+- **Decision:** B. `bronze.nfip_claims` has a second branch reading `_rejected/*.jsonl` via
+  `OPENROWSET` (CSV with 0x0b terminators) + `OPENJSON`, tagged `source_format =
+  'jsonl_rejected'`. `numberOfUnits` is declared `int` in both branches.
+- **Why:** Bronze matches the manifest exactly (1,022,329), nothing silently dropped, and no
+  change to the downloader.
+- **Consequences:** Bronze declares the same 84-column list twice; keep them identical.
+  Future snapshots with new rejects are picked up automatically by the wildcard.
 
 ### D5: Python stays thin; prototype SQL directly in Synapse (2026-11-16)
 - **Context:** Whether to use pandas, and where to prototype SQL before committing it.

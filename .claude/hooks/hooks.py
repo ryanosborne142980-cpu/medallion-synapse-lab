@@ -42,6 +42,10 @@ DENY = [
         r"\S+\.(pem|pfx|p12)\b|\bid_(rsa|ed25519)\b",
         "Reading key or certificate files is blocked.",
     ),
+    (
+        r"\b(git\s+commit|gh\s+pr)\b[\s\S]*(co-authored-by|generated\s+with)",
+        "The user is the sole author: no Co-Authored-By trailers or 'Generated with' lines.",
+    ),
 ]
 
 ASK = [

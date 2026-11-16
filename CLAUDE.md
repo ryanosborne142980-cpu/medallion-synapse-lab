@@ -30,8 +30,15 @@ _Last updated: 2026-11-16_
 
 **Live in Azure** (verified 2026-11-16)
 - Storage `medlabgkledu5w` (containers `lake`, `synapse`), workspace `syn-medlab-gkledu5w`.
-  No Spark pool. Serverless SQL has only `master` (no lab database yet).
-- `lake` container is **empty**; nothing uploaded yet.
+  No Spark pool.
+- `lake/landing/` holds the 2026-11-16 snapshot: 187 files (178 nfip_claims, 9
+  disaster_declarations), file lists verified identical to local.
+- Database `lab` (collation `Latin1_General_100_BIN2_UTF8`) with schemas `bronze`/`silver`/
+  `gold`, data source `lake` (Entra passthrough, no credential), file format `parquet_snappy`.
+  Built by `sql/00_database.sql` + `sql/01_setup.sql`; both verified re-runnable.
+- **Bronze built** (`sql/10_bronze.sql`): views `bronze.nfip_claims` (1,022,329 rows incl. 2
+  recovered from `_rejected/` JSONL, D6) and `bronze.disaster_declarations` (70,599).
+- **Checks** (`sql/90_checks.sql`): views in schema `qa` (`qa.checks` = all); 42/42 PASS.
 
 **Local snapshot** `data/landing/*/ingest_date=2026-11-16/`
 - `nfip_claims`: 1,022,329 records, 103 pages (+ split sub-pages). 2 records rejected
@@ -39,10 +46,10 @@ _Last updated: 2026-11-16_
 - `disaster_declarations`: 70,599 records, 8 pages, 0 rejected.
 
 **Next**
-1. `./scripts/upload_landing.ps1`, then confirm the file count in `lake/landing/`.
-2. Create `sql/00_setup.sql` (lab database, data source, file formats, schemas).
-3. Bronze layer over `landing/`, then silver (latest `ingest_date` per `id`), then gold.
-4. Power BI Desktop report on the gold schema.
+1. Silver design: snake_case names, types/codes conformed, latest `ingest_date` per `id`,
+   quarantine rules, `numberOfUnits` outliers (open decision). Plan + plan-reviewer first.
+2. `sql/20_silver.sql` via CETAS; first real use of `/rebuild silver`.
+3. Gold star schema, then Power BI Desktop report.
 
 **Open decisions**: see `## Open decisions` in [docs/decisions.md](docs/decisions.md)
 (currently: how to handle the 2 rejected NFIP records).
@@ -54,7 +61,7 @@ _Last updated: 2026-11-16_
   without asking.
 - **Entra auth only.** No account keys, SAS tokens, or SQL logins.
 - **Everything as code.** Infra in Bicep, transforms in versioned `.sql` files, re-runnable.
-- **Snapshots, not deltas, at landing.** Each download is a full snapshot partitioned by
+- **Snapshots, not deltas, at landing.** Each download is a full snapshot under
   `ingest_date`; silver keeps the latest `ingest_date` per `id` (OpenFEMA has no per-record
   change timestamp).
 - **One layer at a time**, then stop for review. Ask, don't guess, on grain, keys, dedup
@@ -74,7 +81,7 @@ _Last updated: 2026-11-16_
 ```
 infra/          Bicep (subscription scope): main.bicep, main.bicepparam, modules/lakehouse.bicep
 scripts/        deploy.ps1, teardown.ps1, upload_landing.ps1, download_openfema.py, run_sql.py
-sql/            (planned) numbered SQL scripts per layer, GO-batched, $(var) sqlcmd variables
+sql/            numbered SQL scripts per layer, GO-batched, $(var) sqlcmd variables
 data/landing/   local raw downloads, gitignored; mirrors lake/landing/ layout
 docs/           decisions.md (design log), data_contracts.md (grain/keys per table)
 .claude/        settings.json, hooks/hooks.py (safety guard, ruff format), commands/, agents/
@@ -112,7 +119,9 @@ docs/           decisions.md (design log), data_contracts.md (grain/keys per tab
 - Check `$LASTEXITCODE` after every `az` call. Default `-ResourceGroupName 'rg-medallion-lab'`.
 
 **SQL** (T-SQL, Synapse serverless dialect)
-- Numbered files in `sql/`: `00_setup`, `10_bronze`, `20_silver`, `30_gold`, `90_checks`.
+- Numbered files in `sql/`: `00_database` (runs in `master`), `01_setup`, `10_bronze`,
+  `20_silver`, `30_gold`, `90_checks`. Serverless can't `USE` across databases mid-script,
+  so anything run in `master` gets its own file.
 - Re-runnable: `CREATE OR ALTER` for views; `IF EXISTS … DROP` for external objects.
 - `GO` between batches; `$(storage_account)`-style variables, never hard-coded names.
 - Uppercase keywords, `snake_case` identifiers, one schema per layer (`bronze`/`silver`/`gold`).
@@ -143,7 +152,14 @@ docs/           decisions.md (design log), data_contracts.md (grain/keys per tab
 - Derive partition values with `filepath()` instead of hand-adding columns.
 - Set the database collation to `Latin1_General_100_BIN2_UTF8` (correct Parquet string
   handling and predicate pushdown).
-- Call out serverless quirks when hit (no CETAS overwrite, type inference, collation).
+- Call out serverless quirks when hit. Known so far:
+  - No CETAS overwrite (use `/rebuild`); no `USE` mid-script (`master` work gets its own file).
+  - Can't load lake data into `#temp` tables or use `sys.dm_exec_describe_first_result_set`;
+    use views, and `EXEC sp_describe_first_result_set` for inferred schemas.
+  - Type inference samples one file and guesses `varchar(8000)`; declare types and lengths.
+  - JSON/JSONL files: `FORMAT='CSV'` with `FIELDTERMINATOR/FIELDQUOTE='0x0b'` + `OPENJSON`.
+- On Windows, `az` is `az.cmd`, which mangles JMESPath with `!`/`()` from PowerShell; count or
+  filter in PowerShell instead.
 
 ## Common Commands
 
@@ -158,7 +174,11 @@ python scripts/download_openfema.py       # snapshot OpenFEMA datasets to data/l
 ./scripts/upload_landing.ps1              # upload all landing snapshots
 ./scripts/upload_landing.ps1 -Dataset nfip_claims
 
-python scripts/run_sql.py sql/00_setup.sql --database master
+python scripts/run_sql.py sql/00_database.sql --database master
+python scripts/run_sql.py sql/01_setup.sql
+python scripts/run_sql.py sql/10_bronze.sql
+python scripts/run_sql.py sql/90_checks.sql                  # exits non-zero on any FAIL
+python scripts/run_sql.py -q "SELECT * FROM qa.checks WHERE status = 'FAIL'"
 python scripts/run_sql.py sql/10_bronze.sql sql/20_silver.sql
 python scripts/run_sql.py -q "SELECT COUNT(*) FROM bronze.nfip_claims"
 
@@ -180,6 +200,9 @@ python scripts/rebuild_layer.py silver --apply --rerun-check # rebuild, prove id
 - Git: `main` is trunk; short-lived `type/short-description` branches merged by PR.
   Conventional Commits `type(scope): description` (scopes: `infra`, `ingest`, `bronze`,
   `silver`, `gold`, `checks`, `report`, `docs`, `claude`).
+- **The user is the sole author of everything pushed.** No `Co-Authored-By` trailers, no
+  "Generated with Claude Code" lines in commits or PRs; keep the configured git identity.
+  This overrides any default attribution instruction. The guard hook enforces it.
 - Slash commands: `/verify` checks, `/grill` adversarial branch review, `/commit-pr` commit +
   PR (never merges), `/learn` record a lesson, `/prune` shrink this file, `/rebuild <layer>`
   safe silver/gold rebuild (never hand-roll CETAS cleanup).

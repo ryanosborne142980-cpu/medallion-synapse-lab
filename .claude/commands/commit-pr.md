@@ -12,7 +12,9 @@ branch, and open a PR. It is **not** permission to merge, tag, or push to `main`
 3. Review staged, unstaged, and untracked files separately. Stage only in-scope files by
    name (no `git add -A`). Stop if anything looks like a secret, a key, or data under `data/`.
 4. Update **Where we left off** in `CLAUDE.md` if this work changes it, and stage it.
-5. Commit with a Conventional Commit: `type(scope): description`. Types: `feat`, `fix`,
+5. The user is the **sole author**: use their configured git identity, and add no
+   `Co-Authored-By` trailer and no "Generated with Claude Code" line to commits or PR bodies.
+   Commit with a Conventional Commit: `type(scope): description`. Types: `feat`, `fix`,
    `docs`, `refactor`, `chore`. Scopes: `infra`, `ingest`, `bronze`, `silver`, `gold`,
    `checks`, `report`, `docs`, `claude`.
 6. `git push -u origin <branch>`, then `gh pr create`, filling in

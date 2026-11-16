@@ -34,5 +34,8 @@ foreach ($ds in $datasets) {
     }
 }
 
-az storage fs file list --account-name $account --file-system lake --path landing --auth-mode login `
-    --query "length([?!isDirectory])" -o tsv | ForEach-Object { Write-Host "Files under lake/landing: $_" }
+# Count in PowerShell: az.cmd passes args through cmd.exe, which mangles JMESPath like length([?!x]).
+$isDir = az storage fs file list --account-name $account --file-system lake --path landing --auth-mode login `
+    --query '[].isDirectory' -o json | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0) { throw 'Listing lake/landing failed' }
+Write-Host "Files under lake/landing: $(@($isDir | Where-Object { -not $_ }).Count)"
