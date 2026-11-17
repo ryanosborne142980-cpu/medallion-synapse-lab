@@ -1,0 +1,163 @@
+{
+    "name": "PL_spike",
+    "properties": {
+        "description": "THROWAWAY step-3 spike (delete before the step-3 PR). Copies 29 disaster_declarations rows to samples/pipeline_spike/ to test REST paging, Parquet types vs bronze, file naming, and an MSI blob PUT.",
+        "parameters": {
+            "storage_account": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "activities": [
+            {
+                "name": "Count",
+                "description": "Source count; tests reading metadata.count from a Web activity.",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.00:05:00",
+                    "retry": 0,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "method": "GET",
+                    "url": "https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries?$top=1&$select=id&$inlinecount=allpages&$filter=disasterNumber%20le%2030",
+                    "headers": {
+                        "User-Agent": "medallion-synapse-lab/0.1"
+                    }
+                }
+            },
+            {
+                "name": "Copy",
+                "description": "Page size 10 over 29 rows: RANGE without an end must stop on the empty 4th page (EndCondition). maxRowsPerFile 10 shows the real file names.",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "Count",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:30:00",
+                    "retry": 0,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "RestSource",
+                        "httpRequestTimeout": "00:05:00",
+                        "requestInterval": "00.00:00:00.010",
+                        "requestMethod": "GET",
+                        "additionalHeaders": {
+                            "User-Agent": "medallion-synapse-lab/0.1"
+                        },
+                        "paginationRules": {
+                            "QueryParameters.$skip": "RANGE:0::10",
+                            "EndCondition:$.DisasterDeclarationsSummaries": "Empty"
+                        }
+                    },
+                    "sink": {
+                        "type": "ParquetSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings"
+                        },
+                        "formatSettings": {
+                            "type": "ParquetWriteSettings",
+                            "maxRowsPerFile": 10,
+                            "fileNamePrefix": "part-"
+                        }
+                    },
+                    "enableStaging": false,
+                    "dataIntegrationUnits": 2,
+                    "parallelCopies": 1,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "collectionReference": "$['DisasterDeclarationsSummaries']",
+                        "mappings": [
+                            { "source": { "path": "['id']" }, "sink": { "name": "id", "type": "String" } },
+                            { "source": { "path": "['disasterNumber']" }, "sink": { "name": "disasterNumber", "type": "Int16" } },
+                            { "source": { "path": "['declarationDate']" }, "sink": { "name": "declarationDate", "type": "DateTime" } },
+                            { "source": { "path": "['incidentBeginDate']" }, "sink": { "name": "incidentBeginDate", "type": "String" } },
+                            { "source": { "path": "['ihProgramDeclared']" }, "sink": { "name": "ihProgramDeclared", "type": "Boolean" } },
+                            { "source": { "path": "['region']" }, "sink": { "name": "region", "type": "Int16" } },
+                            { "source": { "path": "['lastRefresh']" }, "sink": { "name": "lastRefresh", "type": "DateTime" } }
+                        ],
+                        "typeConversion": true,
+                        "typeConversionSettings": {
+                            "allowDataTruncation": false,
+                            "treatBooleanAsNumber": false
+                        }
+                    }
+                },
+                "inputs": [
+                    {
+                        "referenceName": "DS_openfema_rest",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "relative_url": "v2/DisasterDeclarationsSummaries?$orderby=id&$top=10&$filter=disasterNumber%20le%2030"
+                        }
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "DS_lake_parquet",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "storage_account": {
+                                "value": "@pipeline().parameters.storage_account",
+                                "type": "Expression"
+                            },
+                            "folder": "samples/pipeline_spike/disaster_declarations"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "PutManifest",
+                "description": "Blob PUT with workspace MSI; tests the 201 empty-body response and a json() object body (numbers stay numbers, null stays null).",
+                "type": "WebActivity",
+                "dependsOn": [
+                    {
+                        "activity": "Copy",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:05:00",
+                    "retry": 0,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "method": "PUT",
+                    "url": {
+                        "value": "@concat('https://', pipeline().parameters.storage_account, '.blob.core.windows.net/lake/samples/pipeline_spike/disaster_declarations/_manifest.json')",
+                        "type": "Expression"
+                    },
+                    "headers": {
+                        "x-ms-blob-type": "BlockBlob",
+                        "x-ms-version": "2023-11-03",
+                        "Content-Type": "application/json"
+                    },
+                    "body": {
+                        "value": "@json(concat('{\"dataset\":\"disaster_declarations\",\"filter\":null,\"record_count\":', string(activity('Count').output.metadata.count), ',\"rows_copied\":', string(activity('Copy').output.rowsCopied), ',\"pipeline_run_id\":\"', pipeline().RunId, '\"}'))",
+                        "type": "Expression"
+                    },
+                    "authentication": {
+                        "type": "MSI",
+                        "resource": "https://storage.azure.com/"
+                    }
+                }
+            }
+        ],
+        "folder": {
+            "name": "spike"
+        }
+    }
+}

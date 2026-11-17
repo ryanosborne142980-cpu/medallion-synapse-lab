@@ -1,0 +1,17 @@
+{
+    "name": "LS_openfema",
+    "properties": {
+        "description": "OpenFEMA public API, anonymous.",
+        "annotations": [],
+        "type": "RestService",
+        "typeProperties": {
+            "url": "https://www.fema.gov/api/open/",
+            "enableServerCertificateValidation": true,
+            "authenticationType": "Anonymous"
+        },
+        "connectVia": {
+            "referenceName": "AutoResolveIntegrationRuntime",
+            "type": "IntegrationRuntimeReference"
+        }
+    }
+}

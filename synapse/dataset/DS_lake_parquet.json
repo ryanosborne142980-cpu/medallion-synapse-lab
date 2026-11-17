@@ -1,0 +1,37 @@
+{
+    "name": "DS_lake_parquet",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "LS_lake",
+            "type": "LinkedServiceReference",
+            "parameters": {
+                "storage_account": {
+                    "value": "@dataset().storage_account",
+                    "type": "Expression"
+                }
+            }
+        },
+        "parameters": {
+            "storage_account": {
+                "type": "string"
+            },
+            "folder": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "Parquet",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobFSLocation",
+                "folderPath": {
+                    "value": "@dataset().folder",
+                    "type": "Expression"
+                },
+                "fileSystem": "lake"
+            },
+            "compressionCodec": "snappy"
+        },
+        "schema": []
+    }
+}
