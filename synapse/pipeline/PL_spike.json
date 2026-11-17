@@ -10,10 +10,45 @@
         "annotations": [],
         "activities": [
             {
+                "name": "ValidateParams",
+                "description": "Fail before any Copy if storage_account is not a plausible account name (3-24 chars after trim).",
+                "type": "IfCondition",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@or(less(length(trim(pipeline().parameters.storage_account)), 3), greater(length(trim(pipeline().parameters.storage_account)), 24))",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "FailBadAccount",
+                            "type": "Fail",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "message": {
+                                    "value": "@concat('storage_account must be the 3-24 character storage account name; got [', pipeline().parameters.storage_account, ']')",
+                                    "type": "Expression"
+                                },
+                                "errorCode": "400"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
                 "name": "Count",
                 "description": "Source count; tests reading metadata.count from a Web activity.",
                 "type": "WebActivity",
-                "dependsOn": [],
+                "dependsOn": [
+                    {
+                        "activity": "ValidateParams",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
                 "policy": {
                     "timeout": "0.00:05:00",
                     "retry": 0,
@@ -78,13 +113,69 @@
                         "type": "TabularTranslator",
                         "collectionReference": "$['DisasterDeclarationsSummaries']",
                         "mappings": [
-                            { "source": { "path": "['id']" }, "sink": { "name": "id", "type": "String" } },
-                            { "source": { "path": "['disasterNumber']" }, "sink": { "name": "disasterNumber", "type": "Int16" } },
-                            { "source": { "path": "['declarationDate']" }, "sink": { "name": "declarationDate", "type": "DateTime" } },
-                            { "source": { "path": "['incidentBeginDate']" }, "sink": { "name": "incidentBeginDate", "type": "String" } },
-                            { "source": { "path": "['ihProgramDeclared']" }, "sink": { "name": "ihProgramDeclared", "type": "Boolean" } },
-                            { "source": { "path": "['region']" }, "sink": { "name": "region", "type": "Int16" } },
-                            { "source": { "path": "['lastRefresh']" }, "sink": { "name": "lastRefresh", "type": "DateTime" } }
+                            {
+                                "source": {
+                                    "path": "['id']"
+                                },
+                                "sink": {
+                                    "name": "id",
+                                    "type": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "path": "['disasterNumber']"
+                                },
+                                "sink": {
+                                    "name": "disasterNumber",
+                                    "type": "Int16"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "path": "['declarationDate']"
+                                },
+                                "sink": {
+                                    "name": "declarationDate",
+                                    "type": "DateTime"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "path": "['incidentBeginDate']"
+                                },
+                                "sink": {
+                                    "name": "incidentBeginDate",
+                                    "type": "String"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "path": "['ihProgramDeclared']"
+                                },
+                                "sink": {
+                                    "name": "ihProgramDeclared",
+                                    "type": "Boolean"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "path": "['region']"
+                                },
+                                "sink": {
+                                    "name": "region",
+                                    "type": "Int16"
+                                }
+                            },
+                            {
+                                "source": {
+                                    "path": "['lastRefresh']"
+                                },
+                                "sink": {
+                                    "name": "lastRefresh",
+                                    "type": "DateTime"
+                                }
+                            }
                         ],
                         "typeConversion": true,
                         "typeConversionSettings": {
@@ -108,7 +199,7 @@
                         "type": "DatasetReference",
                         "parameters": {
                             "storage_account": {
-                                "value": "@pipeline().parameters.storage_account",
+                                "value": "@trim(pipeline().parameters.storage_account)",
                                 "type": "Expression"
                             },
                             "folder": "samples/pipeline_spike/disaster_declarations"
@@ -137,7 +228,7 @@
                 "typeProperties": {
                     "method": "PUT",
                     "url": {
-                        "value": "@concat('https://', pipeline().parameters.storage_account, '.blob.core.windows.net/lake/samples/pipeline_spike/disaster_declarations/_manifest.json')",
+                        "value": "@concat('https://', trim(pipeline().parameters.storage_account), '.blob.core.windows.net/lake/samples/pipeline_spike/disaster_declarations/_manifest.json')",
                         "type": "Expression"
                     },
                     "headers": {
