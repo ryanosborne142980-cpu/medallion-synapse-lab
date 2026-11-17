@@ -46,11 +46,38 @@ _Last updated: 2026-11-17_
 - `disaster_declarations`: 70,599 records, 8 pages, 0 rejected.
 
 **Next**
+0. **Close Fabric-parity step 2** (see Fabric parity below): Studio smoke round trip, then a
+   small docs PR marking it verified.
 1. Silver design in [docs/silver_design.md](docs/silver_design.md), one section at a time.
-   §1 names/types PROPOSED (awaiting user review); then §2 codes, §3 latest-per-id,
-   §4 quality rules, §5 `condo_units` outliers. Plan-reviewer before writing SQL.
+   §1 names/types PROPOSED (awaiting user review; cross-checked 2026-11-17: all 84 claim and
+   29 declaration source columns mapped, no name clashes); then §2 codes, §3 latest-per-id,
+   §4 quality rules, §5 `condo_units` outliers. Plan-reviewer before writing SQL. Fold into
+   the design before approval:
+   - Statewide (`000`) and tribal declarations match no claim county via derived
+     `county_fips`; decide the gold join rule (statewide = every county in the state).
+   - `water_depth_in`: FEMA says "sometimes feet"; flag as unreliable or keep out of gold.
+   - Silver types are narrower than bronze (`state_code` 2 vs 4, `zip_code` 10 vs 16): add a
+     check that no value is truncated.
+   - Add `qa` checks backing the drops: `yearOfLoss` = `YEAR(dateOfLoss)`, `reportedCity`
+     constant, `floodCharacteristicsIndicator` all null.
 2. `sql/20_silver.sql` via CETAS; first real use of `/rebuild silver`.
 3. Gold star schema, then Power BI Desktop report.
+4. Fabric-parity steps 3 (ingestion pipeline) and 4 (CD on merge), per the plan. For step 4,
+   scope the OIDC identity tightly: federated subject exactly `ref:refs/heads/main`,
+   Contributor on the workspace only, `db_owner` on `lab` only, runner firewall rule removed
+   in an `if: always()` step.
+5. **Hardening backlog** (security review 2026-11-17; a public-source, single-user lab, so
+   skip malware scanning, network isolation, content disarm; each item is its own small PR):
+   - Per-file SHA-256 in `_manifest.json`, verified after upload (today only row counts are
+     reconciled; proves upload = download, not source authenticity: OpenFEMA publishes none).
+   - Pin GitHub Actions to commit SHAs; add `.github/dependabot.yml` (actions + pip); confirm
+     secret scanning and push protection are on (repo is public).
+   - `allowSharedKeyAccess: false` on the storage account so "no account keys" is enforced,
+     not just a habit; check with `deploy.ps1 -WhatIf` first (some Synapse/portal tooling may
+     need Entra authorization).
+   - Enable blob soft delete (landing immutability is only a convention).
+   - Confirm `deploy.ps1` generates `sqlAdminPassword` randomly and never logs or stores it.
+   - Housekeeping: `feat/ingestion-hardening` is 1 ahead, 9 behind `main`; rebase or drop.
 
 **Open decisions**: see `## Open decisions` in [docs/decisions.md](docs/decisions.md)
 (currently: numberOfUnits outliers).
@@ -58,10 +85,15 @@ _Last updated: 2026-11-17_
 **Fabric parity** (D7, [docs/fabric_parity_plan.md](docs/fabric_parity_plan.md)): user chose
 to build it as written, one step per PR. Step 1 (CI on PRs, D8) merged in PR #2 and green on
 GitHub. `main` is protected by ruleset `protect-main` (D9). Step 2 (Synapse Git integration,
-D9) is on `feat/synapse-git-integration` (uncommitted) and **deployed 2026-11-17** from that
-branch: workspace repo config verified live (`main`, `/synapse`), Entra-only still on,
-`qa.checks` 0 FAIL. User accepted the Synapse GitHub OAuth scope. Next, per the plan's step 2
-order: Studio OAuth + Git mode check, commit/PR/merge, smoke round trip.
+D9) was **deployed 2026-11-17** from `feat/synapse-git-integration` (workspace repo config
+verified live: `main`, `/synapse`; Entra-only still on; `qa.checks` 0 FAIL) and **merged in
+PR #3** (2026-11-17 16:39 UTC, CI green). User accepted the Synapse GitHub OAuth scope.
+**Still open** (checked via `gh` 2026-11-17): the smoke round trip has not happened. `main`
+has no `synapse/sqlscript/smoke_select1.json` and there is no `workspace_publish` branch, so
+nothing has been Published. Needs the user in Synapse Studio: confirm Git mode (`main`,
+`/synapse`), save `smoke_select1` (`SELECT 1`, never run) on a feature branch, PR and
+squash-merge, Publish from `main`. Then verify with `gh`, delete the artifact the same way,
+and open the docs PR marking step 2 verified.
 
 ## Core Principles
 
