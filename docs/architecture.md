@@ -32,9 +32,9 @@ merge.
 | Lakehouse Files | `landing/`, snapshot 2026-11-16 (187 files) | live |
 | SQL analytics endpoint | Serverless SQL, database `lab`, bronze views + qa checks | live |
 | Lakehouse Tables | Silver and gold CETAS Parquet | silver design §1 |
-| Workspace Git integration | Synapse Git to this repo, root `/synapse` | deployed, PR pending |
+| Workspace Git integration | Synapse Git to this repo, root `/synapse`; merged (PR #3), Git mode on `main` | live; first Publish pending |
 | Deployment pipelines | GitHub Actions CI on PR (step 1); CD on merge (step 4) | CI live |
-| Data Factory | Synapse pipelines, metadata-driven ingest (step 3) | planned |
+| Data Factory | Synapse pipelines, metadata-driven ingest (step 3); spike `PL_spike` + linked services on `main` (PR #7) | spike, not run |
 | Direct Lake report | Power BI Desktop on the serverless endpoint | planned |
 | Notebooks + Delta | Spark pool + Delta (step 5, optional) | deferred (cost) |
 | Shortcuts, mirroring, capacity | No equivalent | n/a |
