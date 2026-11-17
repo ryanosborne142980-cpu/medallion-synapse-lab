@@ -41,8 +41,9 @@ worth it for one environment. CI still validates Bicep on every PR.
 Why no `synapse-workspace-deployment` step: with one environment, Publish already updates the
 live workspace; deploying the `workspace_publish` ARM templates again would be redundant.
 
-- **CI (on PR, no Azure access):** `ruff check` + `ruff format --check`, `az bicep build`, and a
-  static SQL lint (TBD: `sqlfluff` with the `tsql` dialect, or a parse-only check). Free.
+- **CI (on PR, no Azure access):** `ruff check` + `ruff format --check`, `az bicep build`
+  (+ `build-params` with placeholder env values), and `scripts/lint_sql.py` for repo SQL rules
+  (D8: sqlfluff can't parse Synapse DDL). Free. Built in `.github/workflows/ci.yml`.
 - **CD (on merge to `main`, only when `sql/**` changed):** `azure/login` via OIDC -> add a
   Synapse firewall rule for the runner IP -> `run_sql.py` for changed layer files -> `90_checks.sql`
   (fails the job on any FAIL) -> remove the firewall rule in an `if: always()` step. Silver/gold
@@ -114,7 +115,8 @@ patterns from the earlier draft still apply; only "ADF" now reads "Synapse pipel
 
 ## 5. Order (cheapest and most useful first)
 
-1. **CI check workflow** on PRs (no Azure, no cost).
+1. **CI check workflow** on PRs (no Azure, no cost). Built 2026-11-17 on
+   `ci/pr-check-workflow`.
 2. **Synapse Git integration** with this repo (Bicep `workspaceRepositoryConfiguration`, root
    folder `synapse/`, collaboration branch `main`); build pipelines in Synapse Studio, saved as
    JSON here. Publish writes ARM templates to the `workspace_publish` branch.

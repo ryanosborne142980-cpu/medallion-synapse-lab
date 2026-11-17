@@ -19,6 +19,23 @@ Record each design decision when it is made. Newest first. Keep entries short.
 
 ## Decisions
 
+### D8: CI SQL lint is a repo-rules linter, not sqlfluff (2026-11-17)
+- **Context:** D7's CI step needed a static SQL check; the plan left `sqlfluff` vs parse-only
+  open.
+- **Options:** A) `sqlfluff --dialect tsql`; B) a parse-only check; C) `scripts/lint_sql.py`,
+  a stdlib linter for this repo's rules.
+- **Decision:** C. Rules: `NN_name.sql` file names, only `$(storage_account)`/`$(workspace)`
+  variables, no hard-coded storage/SQL host names, no `USE`, `CREATE OR ALTER VIEW`, an IF guard
+  in the batch for `CREATE DATABASE/SCHEMA/EXTERNAL DATA SOURCE/FILE FORMAT`, an earlier
+  `DROP EXTERNAL TABLE` before CETAS, and no `SELECT *` in files numbered 20+.
+- **Why:** tested on 2026-11-17: sqlfluff 4.5 can't parse valid Synapse DDL
+  (`CREATE EXTERNAL FILE FORMAT ... DATA_COMPRESSION` in `01_setup.sql`) and its layout rules
+  flag dozens of style nits. No parser for the serverless dialect runs offline, so B has the
+  same gap. C catches the mistakes that actually break reruns or deploys.
+- **Consequences:** it's regex-based (comments and string contents are blanked first), so it
+  misses some constructs and doesn't check syntax. Syntax errors still surface only when
+  run live (`run_sql.py`, later the CD job).
+
 ### D7: Fabric parity via Synapse pipelines + GitHub Actions (2026-11-17)
 - **Context:** map the lab onto Fabric (Data Factory, Git integration, deployment pipelines)
   without new always-on resources.

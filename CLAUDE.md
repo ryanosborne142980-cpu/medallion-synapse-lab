@@ -18,7 +18,7 @@ Fabric** (ADLS → OneLake shortcuts, Synapse → Lakehouse/Warehouse, ADF → F
 
 ## Where we left off
 
-_Last updated: 2026-11-16_
+_Last updated: 2026-11-17_
 
 **Done**
 - Infra in Bicep: RG `rg-medallion-lab` (centralus), ADLS Gen2 (`lake`, `synapse` containers),
@@ -53,9 +53,14 @@ _Last updated: 2026-11-16_
 3. Gold star schema, then Power BI Desktop report.
 
 **Open decisions**: see `## Open decisions` in [docs/decisions.md](docs/decisions.md)
-(currently: numberOfUnits outliers). Fabric-parity plan approved 2026-11-17 (D7,
-[docs/fabric_parity_plan.md](docs/fabric_parity_plan.md)), not built; its step 1 is a CI check
-workflow on PRs.
+(currently: numberOfUnits outliers).
+
+**Fabric parity** (D7, [docs/fabric_parity_plan.md](docs/fabric_parity_plan.md)): user chose
+to build it as written, one step per PR. Step 1 (CI on PRs: ruff, bicep build,
+`lint_sql.py` per D8) is built on `ci/pr-check-workflow`, stacked on PR #1
+(`docs/fabric-parity-plan`), not committed yet and not yet run on GitHub. Next: step 2,
+Synapse Git integration (Bicep `workspaceRepositoryConfiguration`, a `deploy.ps1 -WhatIf`
+first).
 
 ## Core Principles
 
@@ -88,7 +93,9 @@ workflow on PRs.
 
 ```
 infra/          Bicep (subscription scope): main.bicep, main.bicepparam, modules/lakehouse.bicep
-scripts/        deploy.ps1, teardown.ps1, upload_landing.ps1, download_openfema.py, run_sql.py
+scripts/        deploy.ps1, teardown.ps1, upload_landing.ps1, download_openfema.py, run_sql.py,
+                rebuild_layer.py, lint_sql.py (static SQL rules, run by CI)
+.github/        workflows/ci.yml (PR checks: ruff, bicep build, SQL lint)
 sql/            numbered SQL scripts per layer, GO-batched, $(var) sqlcmd variables
 data/landing/   local raw downloads, gitignored; mirrors lake/landing/ layout
 docs/           decisions.md (design log), data_contracts.md (grain/keys per table)
@@ -189,6 +196,8 @@ python scripts/run_sql.py sql/90_checks.sql                  # exits non-zero on
 python scripts/run_sql.py -q "SELECT * FROM qa.checks WHERE status = 'FAIL'"
 python scripts/run_sql.py sql/10_bronze.sql sql/20_silver.sql
 python scripts/run_sql.py -q "SELECT COUNT(*) FROM bronze.nfip_claims"
+
+python scripts/lint_sql.py                                   # repo SQL rules (CI runs this)
 
 python scripts/rebuild_layer.py silver                       # dry run: tables + folders to delete
 python scripts/rebuild_layer.py silver --apply --rerun-check # rebuild, prove idempotent, run checks

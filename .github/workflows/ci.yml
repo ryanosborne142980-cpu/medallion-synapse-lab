@@ -1,0 +1,48 @@
+# PR checks (Fabric-parity plan step 1, D7). No Azure login, no secrets, no cost.
+# Fabric equivalent: the validation half of a deployment pipeline / Git-integrated workspace.
+name: ci
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: ruff + SQL lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - name: ruff check
+        run: ruff check scripts .claude/hooks
+      - name: ruff format
+        run: ruff format --check scripts .claude/hooks
+      - name: SQL lint (repo conventions)
+        run: python scripts/lint_sql.py
+
+  bicep:
+    name: bicep build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # az is preinstalled on ubuntu runners; building needs no login.
+      - run: az bicep install --version v0.49.2
+      - name: build main.bicep
+        run: az bicep build --file infra/main.bicep --stdout > /dev/null
+      - name: build main.bicepparam
+        # Placeholders for the values deploy.ps1 sets; this only type-checks, never deploys.
+        env:
+          LAB_CLIENT_IP: 203.0.113.10
+          LAB_USER_OBJECT_ID: 00000000-0000-0000-0000-000000000000
+          LAB_SQL_ADMIN_PASSWORD: ci-placeholder-not-a-secret
+        run: az bicep build-params --file infra/main.bicepparam --stdout > /dev/null
