@@ -53,9 +53,9 @@ _Last updated: 2026-11-16_
 3. Gold star schema, then Power BI Desktop report.
 
 **Open decisions**: see `## Open decisions` in [docs/decisions.md](docs/decisions.md)
-(currently: numberOfUnits outliers, and the proposed Fabric-parity ingestion plan in
-[docs/fabric_parity_plan.md](docs/fabric_parity_plan.md): design only, nothing built, needs
-approval because it conflicts with the Core Principles).
+(currently: numberOfUnits outliers). Fabric-parity plan approved 2026-11-17 (D7,
+[docs/fabric_parity_plan.md](docs/fabric_parity_plan.md)), not built; its step 1 is a CI check
+workflow on PRs.
 
 ## Core Principles
 
