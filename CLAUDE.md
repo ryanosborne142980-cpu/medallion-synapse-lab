@@ -56,11 +56,12 @@ _Last updated: 2026-11-17_
 (currently: numberOfUnits outliers).
 
 **Fabric parity** (D7, [docs/fabric_parity_plan.md](docs/fabric_parity_plan.md)): user chose
-to build it as written, one step per PR. Step 1 (CI on PRs: ruff, bicep build,
-`lint_sql.py` per D8) is built on `ci/pr-check-workflow`, stacked on PR #1
-(`docs/fabric-parity-plan`), not committed yet and not yet run on GitHub. Next: step 2,
-Synapse Git integration (Bicep `workspaceRepositoryConfiguration`, a `deploy.ps1 -WhatIf`
-first).
+to build it as written, one step per PR. Step 1 (CI on PRs, D8) merged in PR #2 and green on
+GitHub. `main` is protected by ruleset `protect-main` (D9). Step 2 (Synapse Git integration,
+D9) is on `feat/synapse-git-integration` (uncommitted) and **deployed 2026-11-17** from that
+branch: workspace repo config verified live (`main`, `/synapse`), Entra-only still on,
+`qa.checks` 0 FAIL. User accepted the Synapse GitHub OAuth scope. Next, per the plan's step 2
+order: Studio OAuth + Git mode check, commit/PR/merge, smoke round trip.
 
 ## Core Principles
 
@@ -95,7 +96,9 @@ first).
 infra/          Bicep (subscription scope): main.bicep, main.bicepparam, modules/lakehouse.bicep
 scripts/        deploy.ps1, teardown.ps1, upload_landing.ps1, download_openfema.py, run_sql.py,
                 rebuild_layer.py, lint_sql.py (static SQL rules, run by CI)
-.github/        workflows/ci.yml (PR checks: ruff, bicep build, SQL lint)
+.github/        workflows/ci.yml (PR checks: ruff, bicep build, SQL lint, synapse/ secret scan)
+synapse/        Synapse Studio Git root (D9): Save = commit; Publish from main = live deploy +
+                workspace_publish commit (never edit that branch by hand)
 sql/            numbered SQL scripts per layer, GO-batched, $(var) sqlcmd variables
 data/landing/   local raw downloads, gitignored; mirrors lake/landing/ layout
 docs/           decisions.md (design log), data_contracts.md (grain/keys per table)
@@ -214,7 +217,8 @@ python scripts/rebuild_layer.py silver --apply --rerun-check # rebuild, prove id
   `docs/data_contracts.md`. Update both in the same change as the SQL.
 - **Ask first** before: commit, push, PR, merge; destructive DDL or lake deletes; deploy or
   teardown. Never force-push `main`. Check `git status` first; never discard user changes.
-- Git: `main` is trunk; short-lived `type/short-description` branches merged by PR.
+- Git: `main` is trunk, protected (ruleset `protect-main`: PR + green CI, no direct pushes);
+  short-lived `type/short-description` branches merged by PR.
   Conventional Commits `type(scope): description` (scopes: `infra`, `ingest`, `bronze`,
   `silver`, `gold`, `checks`, `report`, `docs`, `claude`).
 - **The user is the sole author of everything pushed.** No `Co-Authored-By` trailers, no
@@ -238,6 +242,7 @@ TODO
 ## References
 
 - [README.md](README.md): infra overview and setup
+- [docs/architecture.md](docs/architecture.md): data and delivery path diagrams, Fabric mapping
 - [docs/decisions.md](docs/decisions.md): design decisions and open questions
 - [docs/data_contracts.md](docs/data_contracts.md): grain, keys, quirks per dataset/table
 - [docs/reference/](docs/reference/): FEMA's official field definitions and code legends

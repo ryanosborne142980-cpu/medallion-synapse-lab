@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1110 320" role="img" aria-label="Changes reach main only through pull requests that pass CI. Synapse Studio saves commit to feature branches. Publish from main deploys pipelines to the live workspace and writes ARM templates to workspace_publish. Infrastructure is deployed manually with deploy.ps1, and SQL runs through run_sql.py; a CD job is planned.">
+<style>
+  svg { color: #17212b; background: #ffffff; }
+  .band { fill: #eaf0f5; }
+  .box { fill: #ffffff; stroke: #17212b; stroke-width: 1.2; }
+  .box.plan { stroke: #a3620a; stroke-dasharray: 5 4; }
+  .box.hot { stroke: #0f6f8f; stroke-width: 2; }
+  .t { fill: #17212b; font: 600 13px "Segoe UI", Inter, system-ui, sans-serif; }
+  .s { fill: #5a6875; font: 400 11.5px Consolas, "JetBrains Mono", ui-monospace, monospace; }
+  .f { fill: #5a6875; font: italic 400 11px "Segoe UI", Inter, system-ui, sans-serif; }
+  .bt { fill: #5a6875; font: 600 11px Consolas, ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; }
+  .e { fill: none; stroke: #17212b; stroke-width: 1.3; }
+  .e.hot { stroke: #0f6f8f; stroke-width: 2; }
+  .e.plan { stroke: #a3620a; stroke-dasharray: 5 4; }
+  .el { fill: #17212b; font: 500 11px "Segoe UI", Inter, system-ui, sans-serif; }
+  .el.hot, .ah.hot { fill: #0f6f8f; }
+  .el.plan, .ah.plan { fill: #a3620a; }
+  .ah { fill: #17212b; }
+  @media (prefers-color-scheme: dark) {
+    svg { background: #10161c; }
+    .band { fill: #1b2731; }
+    .box { fill: #172029; stroke: #e3e9ef; }
+    .box.plan { stroke: #e0a24a; } .box.hot { stroke: #4fb6d6; }
+    .t, .el, .ah { fill: #e3e9ef; } .e { stroke: #e3e9ef; }
+    .s, .f, .bt { fill: #93a2b0; }
+    .e.hot { stroke: #4fb6d6; } .el.hot, .ah.hot { fill: #4fb6d6; }
+    .e.plan { stroke: #e0a24a; } .el.plan, .ah.plan { fill: #e0a24a; }
+  }
+</style>
+          <defs>
+            <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+            <marker id="bp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah plan"/></marker>
+          </defs>
+
+          <!-- Clients -->
+          <rect class="box" x="16" y="40" width="150" height="60" rx="6"/>
+          <text class="t" x="91" y="66" text-anchor="middle">Synapse Studio</text>
+          <text class="s" x="91" y="86" text-anchor="middle">browser, Git mode</text>
+
+          <rect class="box" x="16" y="150" width="150" height="70" rx="6"/>
+          <text class="t" x="91" y="176" text-anchor="middle">Your machine</text>
+          <text class="s" x="91" y="196" text-anchor="middle">VS Code, az,</text>
+          <text class="s" x="91" y="210" text-anchor="middle">Claude Code</text>
+
+          <!-- GitHub -->
+          <rect class="band" x="250" y="30" width="440" height="230" rx="8"/>
+          <text class="bt" x="266" y="50">GitHub · medallion-synapse-lab</text>
+
+          <rect class="box" x="270" y="62" width="160" height="50" rx="6"/>
+          <text class="t" x="350" y="84" text-anchor="middle">feature branches</text>
+          <text class="s" x="350" y="102" text-anchor="middle">type/short-desc</text>
+
+          <rect class="box" x="500" y="62" width="170" height="50" rx="6"/>
+          <text class="t" x="585" y="84" text-anchor="middle">main</text>
+          <text class="s" x="585" y="102" text-anchor="middle">ruleset protect-main</text>
+
+          <rect class="box" x="270" y="190" width="160" height="50" rx="6"/>
+          <text class="t" x="350" y="212" text-anchor="middle">Actions CI</text>
+          <text class="s" x="350" y="230" text-anchor="middle">ruff · bicep · SQL lint</text>
+
+          <rect class="box" x="500" y="190" width="170" height="50" rx="6"/>
+          <text class="t" x="585" y="212" text-anchor="middle">workspace_publish</text>
+          <text class="s" x="585" y="230" text-anchor="middle">ARM, machine-written</text>
+
+          <!-- Azure -->
+          <rect class="band" x="760" y="30" width="320" height="230" rx="8"/>
+          <text class="bt" x="776" y="50">Azure · rg-medallion-lab</text>
+
+          <rect class="box" x="780" y="62" width="280" height="44" rx="6"/>
+          <text class="t" x="920" y="82" text-anchor="middle">Infra: storage, workspace, RBAC</text>
+          <text class="s" x="920" y="98" text-anchor="middle">Bicep</text>
+
+          <rect class="box" x="780" y="126" width="280" height="44" rx="6"/>
+          <text class="t" x="920" y="146" text-anchor="middle">Workspace live artifacts</text>
+          <text class="s" x="920" y="162" text-anchor="middle">pipelines, linked services</text>
+
+          <rect class="box" x="780" y="190" width="280" height="44" rx="6"/>
+          <text class="t" x="920" y="210" text-anchor="middle">Serverless SQL · lab</text>
+          <text class="s" x="920" y="226" text-anchor="middle">views, CETAS, qa</text>
+
+          <!-- Edges -->
+          <line class="e" x1="166" y1="72" x2="267" y2="80" marker-end="url(#b)"/>
+          <text class="el" x="214" y="66" text-anchor="middle">Save = commit</text>
+
+          <polyline class="e" points="166,170 220,170 220,100 267,100" marker-end="url(#b)"/>
+          <text class="el" x="226" y="140">push</text>
+
+          <line class="e" x1="430" y1="80" x2="497" y2="80" marker-end="url(#b)"/>
+          <text class="el" x="465" y="73" text-anchor="middle">PR, squash</text>
+
+          <line class="e" x1="350" y1="112" x2="350" y2="187" marker-end="url(#b)"/>
+          <text class="el" x="358" y="154">on pull_request</text>
+
+          <polyline class="e" points="430,215 465,215 465,100 497,100" marker-end="url(#b)"/>
+          <text class="el" x="472" y="170">required</text>
+          <text class="el" x="472" y="184">checks</text>
+
+          <line class="e" x1="585" y1="112" x2="585" y2="187" marker-end="url(#b)"/>
+          <text class="el" x="593" y="154">Publish: ARM</text>
+
+          <polyline class="e" points="670,74 740,74 740,148 777,148" marker-end="url(#b)"/>
+          <text class="el" x="705" y="67" text-anchor="middle">Publish</text>
+
+          <polyline class="e plan" points="670,100 718,100 718,212 777,212" marker-end="url(#bp)"/>
+          <text class="el plan" x="712" y="128" text-anchor="end">CD on merge</text>
+
+          <polyline class="e" points="110,220 110,282 920,282 920,237" marker-end="url(#b)"/>
+          <text class="el" x="500" y="276" text-anchor="middle">run_sql.py · Entra token</text>
+
+          <polyline class="e" points="70,220 70,302 1096,302 1096,84 1063,84" marker-end="url(#b)"/>
+          <text class="el" x="500" y="296" text-anchor="middle">deploy.ps1 · Bicep, manual, asks first</text>
+        </svg>

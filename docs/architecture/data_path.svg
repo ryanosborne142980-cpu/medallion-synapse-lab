@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 400" role="img" aria-label="OpenFEMA data is pulled by a Python script (a Synapse pipeline is planned) into ADLS landing as Parquet. Bronze views read landing in place with OPENROWSET. Planned silver and gold CETAS steps write Parquet back to the lake, and gold feeds a planned Power BI report.">
+<style>
+  svg { color: #17212b; background: #ffffff; }
+  .band { fill: #eaf0f5; }
+  .box { fill: #ffffff; stroke: #17212b; stroke-width: 1.2; }
+  .box.plan { stroke: #a3620a; stroke-dasharray: 5 4; }
+  .box.hot { stroke: #0f6f8f; stroke-width: 2; }
+  .t { fill: #17212b; font: 600 13px "Segoe UI", Inter, system-ui, sans-serif; }
+  .s { fill: #5a6875; font: 400 11.5px Consolas, "JetBrains Mono", ui-monospace, monospace; }
+  .f { fill: #5a6875; font: italic 400 11px "Segoe UI", Inter, system-ui, sans-serif; }
+  .bt { fill: #5a6875; font: 600 11px Consolas, ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; }
+  .e { fill: none; stroke: #17212b; stroke-width: 1.3; }
+  .e.hot { stroke: #0f6f8f; stroke-width: 2; }
+  .e.plan { stroke: #a3620a; stroke-dasharray: 5 4; }
+  .el { fill: #17212b; font: 500 11px "Segoe UI", Inter, system-ui, sans-serif; }
+  .el.hot, .ah.hot { fill: #0f6f8f; }
+  .el.plan, .ah.plan { fill: #a3620a; }
+  .ah { fill: #17212b; }
+  @media (prefers-color-scheme: dark) {
+    svg { background: #10161c; }
+    .band { fill: #1b2731; }
+    .box { fill: #172029; stroke: #e3e9ef; }
+    .box.plan { stroke: #e0a24a; } .box.hot { stroke: #4fb6d6; }
+    .t, .el, .ah { fill: #e3e9ef; } .e { stroke: #e3e9ef; }
+    .s, .f, .bt { fill: #93a2b0; }
+    .e.hot { stroke: #4fb6d6; } .el.hot, .ah.hot { fill: #4fb6d6; }
+    .e.plan { stroke: #e0a24a; } .el.plan, .ah.plan { fill: #e0a24a; }
+  }
+</style>
+          <defs>
+            <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah hot"/></marker>
+            <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah plan"/></marker>
+          </defs>
+
+          <!-- Serverless SQL band -->
+          <rect class="band" x="360" y="16" width="570" height="150" rx="8"/>
+          <text class="bt" x="376" y="38">Synapse serverless SQL · database lab</text>
+          <text class="f" x="914" y="38" text-anchor="end">≈ Lakehouse SQL analytics endpoint</text>
+
+          <rect class="box hot" x="380" y="56" width="160" height="90" rx="6"/>
+          <text class="t" x="460" y="82" text-anchor="middle">bronze views</text>
+          <text class="s" x="460" y="102" text-anchor="middle">nfip_claims 1,022,329</text>
+          <text class="s" x="460" y="118" text-anchor="middle">declarations 70,599</text>
+          <text class="s" x="460" y="134" text-anchor="middle">+ qa.checks 44/44</text>
+
+          <rect class="box plan" x="575" y="56" width="160" height="90" rx="6"/>
+          <text class="t" x="655" y="86" text-anchor="middle">silver tables</text>
+          <text class="s" x="655" y="106" text-anchor="middle">typed, latest</text>
+          <text class="s" x="655" y="122" text-anchor="middle">ingest_date per id</text>
+
+          <rect class="box plan" x="770" y="56" width="140" height="90" rx="6"/>
+          <text class="t" x="840" y="86" text-anchor="middle">gold star</text>
+          <text class="s" x="840" y="106" text-anchor="middle">fact_claims,</text>
+          <text class="s" x="840" y="122" text-anchor="middle">dim_* tables</text>
+
+          <!-- Lake band -->
+          <rect class="band" x="360" y="210" width="570" height="170" rx="8"/>
+          <text class="bt" x="376" y="368">ADLS Gen2 · medlabgkledu5w / lake</text>
+          <text class="f" x="914" y="368" text-anchor="end">≈ OneLake</text>
+
+          <rect class="box hot" x="380" y="232" width="160" height="104" rx="6"/>
+          <text class="t" x="460" y="258" text-anchor="middle">landing/</text>
+          <text class="s" x="460" y="278" text-anchor="middle">&lt;dataset&gt;/</text>
+          <text class="s" x="460" y="294" text-anchor="middle">ingest_date=…/</text>
+          <text class="s" x="460" y="310" text-anchor="middle">Parquet, immutable</text>
+          <text class="f" x="460" y="327" text-anchor="middle">≈ Lakehouse Files</text>
+
+          <rect class="box plan" x="575" y="232" width="160" height="104" rx="6"/>
+          <text class="t" x="655" y="270" text-anchor="middle">silver/</text>
+          <text class="s" x="655" y="290" text-anchor="middle">Parquet</text>
+          <text class="f" x="655" y="327" text-anchor="middle">≈ Lakehouse Tables</text>
+
+          <rect class="box plan" x="770" y="232" width="140" height="104" rx="6"/>
+          <text class="t" x="840" y="270" text-anchor="middle">gold/</text>
+          <text class="s" x="840" y="290" text-anchor="middle">Parquet</text>
+          <text class="f" x="840" y="327" text-anchor="middle">≈ Lakehouse Tables</text>
+
+          <!-- Source and ingestion -->
+          <rect class="box" x="16" y="250" width="124" height="66" rx="6"/>
+          <text class="t" x="78" y="278" text-anchor="middle">OpenFEMA API</text>
+          <text class="s" x="78" y="298" text-anchor="middle">REST, paged</text>
+
+          <rect class="box hot" x="180" y="214" width="150" height="58" rx="6"/>
+          <text class="t" x="255" y="238" text-anchor="middle">download_openfema</text>
+          <text class="s" x="255" y="258" text-anchor="middle">+ upload_landing</text>
+
+          <rect class="box plan" x="180" y="296" width="150" height="58" rx="6"/>
+          <text class="t" x="255" y="320" text-anchor="middle">PL_ingest pipeline</text>
+          <text class="f" x="255" y="340" text-anchor="middle">≈ Fabric Data Factory</text>
+
+          <polyline class="e hot" points="140,283 160,283 160,243 178,243" marker-end="url(#ah)"/>
+          <polyline class="e plan" points="140,283 160,283 160,325 178,325" marker-end="url(#ap)"/>
+          <polyline class="e hot" points="330,243 352,243 352,270 378,270" marker-end="url(#ah)"/>
+          <text class="el hot" x="345" y="196" text-anchor="middle">Parquet +</text>
+          <text class="el hot" x="345" y="209" text-anchor="middle">_manifest</text>
+          <polyline class="e plan" points="330,325 352,325 352,300 378,300" marker-end="url(#ap)"/>
+
+          <!-- Medallion hops -->
+          <line class="e hot" x1="460" y1="232" x2="460" y2="149" marker-end="url(#ah)"/>
+          <text class="el hot" x="468" y="186">OPENROWSET</text>
+          <text class="el hot" x="468" y="200">reads in place</text>
+
+          <line class="e plan" x1="540" y1="101" x2="572" y2="101" marker-end="url(#ap)"/>
+          <text class="el plan" x="556" y="92" text-anchor="middle">CETAS</text>
+          <line class="e plan" x1="655" y1="146" x2="655" y2="229" marker-end="url(#ap)"/>
+          <text class="el plan" x="663" y="192">writes</text>
+
+          <line class="e plan" x1="735" y1="101" x2="767" y2="101" marker-end="url(#ap)"/>
+          <text class="el plan" x="751" y="92" text-anchor="middle">CETAS</text>
+          <line class="e plan" x1="840" y1="146" x2="840" y2="229" marker-end="url(#ap)"/>
+          <text class="el plan" x="848" y="192">writes</text>
+
+          <!-- Report -->
+          <rect class="box plan" x="966" y="56" width="120" height="90" rx="6"/>
+          <text class="t" x="1026" y="86" text-anchor="middle">Power BI</text>
+          <text class="s" x="1026" y="104" text-anchor="middle">Desktop</text>
+          <text class="f" x="1026" y="124" text-anchor="middle">≈ Direct Lake</text>
+          <line class="e plan" x1="910" y1="101" x2="963" y2="101" marker-end="url(#ap)"/>
+          <text class="el plan" x="938" y="92" text-anchor="middle">Entra</text>
+        </svg>

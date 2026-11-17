@@ -10,6 +10,20 @@ param userObjectId string
 param sqlAdminPassword string
 
 param deploySparkPool bool
+param gitAccountName string
+param gitRepositoryName string
+
+// Synapse Git integration (D9). Fabric equivalent: workspace Git integration.
+// Studio Save = a commit to this repo; Publish = live deploy + a commit to workspace_publish.
+var repoConfig = empty(gitAccountName) || empty(gitRepositoryName)
+  ? null
+  : {
+      type: 'WorkspaceGitHubConfiguration'
+      accountName: gitAccountName
+      repositoryName: gitRepositoryName
+      collaborationBranch: 'main'
+      rootFolder: '/synapse'
+    }
 
 var suffix = take(uniqueString(resourceGroup().id), 8)
 var storageAccountName = toLower('${prefix}${suffix}')
@@ -76,6 +90,10 @@ resource workspace 'Microsoft.Synapse/workspaces@2021-06-01' = {
     sqlAdministratorLogin: 'sqladminuser'
     sqlAdministratorLoginPassword: sqlAdminPassword
     publicNetworkAccess: 'Enabled'
+    // Also set here (not only via azureADOnlyAuthentications below) so a redeploy's workspace PUT
+    // never briefly re-enables SQL auth.
+    azureADOnlyAuthentication: true
+    workspaceRepositoryConfiguration: repoConfig
   }
 }
 
