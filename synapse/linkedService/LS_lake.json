@@ -1,0 +1,20 @@
+{
+    "name": "LS_lake",
+    "properties": {
+        "description": "ADLS Gen2 lake, workspace managed identity (no credential block = MI).",
+        "parameters": {
+            "storage_account": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "AzureBlobFS",
+        "typeProperties": {
+            "url": "@{concat('https://', linkedService().storage_account, '.dfs.core.windows.net/')}"
+        },
+        "connectVia": {
+            "referenceName": "AutoResolveIntegrationRuntime",
+            "type": "IntegrationRuntimeReference"
+        }
+    }
+}

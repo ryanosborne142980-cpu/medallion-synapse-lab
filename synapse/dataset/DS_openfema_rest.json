@@ -1,0 +1,23 @@
+{
+    "name": "DS_openfema_rest",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "LS_openfema",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "relative_url": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "RestResource",
+        "typeProperties": {
+            "relativeUrl": {
+                "value": "@dataset().relative_url",
+                "type": "Expression"
+            }
+        },
+        "schema": []
+    }
+}
