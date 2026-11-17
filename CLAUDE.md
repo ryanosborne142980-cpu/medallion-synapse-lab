@@ -38,7 +38,11 @@ _Last updated: 2026-11-16_
   Built by `sql/00_database.sql` + `sql/01_setup.sql`; both verified re-runnable.
 - **Bronze built** (`sql/10_bronze.sql`): views `bronze.nfip_claims` (1,022,329 rows incl. 2
   recovered from `_rejected/` JSONL, D6) and `bronze.disaster_declarations` (70,599).
-- **Checks** (`sql/90_checks.sql`): views in schema `qa` (`qa.checks` = all); 42/42 PASS.
+- **Ingestion checks** (`sql/90_checks.sql`): views in schema `qa` (`qa.ingestion_checks`,
+  `qa.ingestion_string_lengths`; `qa.checks` = all layers); 44/44 PASS. Silver checks will
+  get their own `qa.silver_checks` view, never mixed into ingestion.
+- Ingestion hardening done: upload verifies names + sizes per snapshot; downloader records
+  `record_count_end`, defaults to the UTC date, sends `--filter` pulls to `data/samples/`.
 
 **Local snapshot** `data/landing/*/ingest_date=2026-11-16/`
 - `nfip_claims`: 1,022,329 records, 103 pages (+ split sub-pages). 2 records rejected

@@ -227,11 +227,21 @@ def download(
         for r in json.loads(marker.read_text())["rejected"]
     ]
     total_bytes = sum(p.stat().st_size for p in target.glob("*.parquet"))
+    # Re-read the source count: if FEMA changed the data while we paged with $skip, rows may
+    # have shifted between pages (duplicates or gaps), so flag the snapshot for a re-download.
+    # sql/90_checks.sql fails the snapshot when record_count_end differs from record_count.
+    total_end = record_count(base, filter_expr)
+    if total_end != total:
+        print(
+            f"  WARNING: source count changed during download ({total:,} -> {total_end:,}); "
+            "delete this snapshot and re-download"
+        )
     manifest = {
         "dataset": dataset,
         "source": base,
         "filter": filter_expr,
         "record_count": total,
+        "record_count_end": total_end,
         "rejected_count": len(rejected_all),
         "rejected": rejected_all,
         "pages": pages,

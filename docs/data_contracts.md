@@ -43,8 +43,9 @@ One entry per table or view. Update when one is added or its grain, keys, or col
   headroom. Plus `ingest_date` (raw 'YYYY-MM-DD' from folder), `source_file`,
   `source_format` (`parquet` | `jsonl_rejected`).
 - **Load pattern:** view over all snapshots; filter `ingest_date` to prune folders
-- **Quality rules:** `qa.bronze_checks` (rows = manifest, recovered = rejected_count, no
-  duplicate ids per snapshot), `qa.bronze_string_lengths` (no truncation)
+- **Quality rules:** `qa.ingestion_checks` (rows = manifest, FEMA count unchanged during
+  download, recovered = rejected_count, no duplicate ids per snapshot, one `asOfDate` per
+  snapshot), `qa.ingestion_string_lengths` (no truncation)
 - **Verified 2026-11-16:** 1,022,329 rows (1,022,327 parquet + 2 jsonl_rejected)
 - **Inferred columns:** none
 
