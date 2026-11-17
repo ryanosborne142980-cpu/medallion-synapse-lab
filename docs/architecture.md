@@ -1,8 +1,9 @@
 # Architecture
 
 _As of 2026-11-17._ Blue = the live data path, solid = built, dashed amber = planned.
-"≈" marks the Microsoft Fabric equivalent. Update the SVGs in
-[architecture/](architecture/) when a planned piece is built.
+"≈" marks the Microsoft Fabric equivalent. Full styled page:
+[architecture/architecture.html](architecture/architecture.html) (open it in a browser). Update the HTML and the SVGs
+in [architecture/](architecture/) together when a planned piece is built.
 
 ## Data path
 
