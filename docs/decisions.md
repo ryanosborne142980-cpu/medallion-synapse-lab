@@ -19,6 +19,21 @@ Record each design decision when it is made. Newest first. Keep entries short.
 
 ## Decisions
 
+### D7: Fabric parity via Synapse pipelines + GitHub Actions (2026-11-17)
+- **Context:** map the lab onto Fabric (Data Factory, Git integration, deployment pipelines)
+  without new always-on resources.
+- **Options:** A) standalone ADF + Azure SQL control DB + Spark/Delta (first draft);
+  B) Synapse pipelines in the existing workspace, JSON config in the lake, Actions CI/CD.
+- **Decision:** B. CI on PR (ruff, bicep build, SQL lint). CD on merge deploys only `sql/` +
+  checks via OIDC; Bicep stays a manual `deploy.ps1`; Synapse artifacts reach Azure via Studio
+  Publish. Pipeline tests run in `samples/pipeline_test/`, never `landing/`. Python scripts stay
+  as a fallback after the pipeline matches. Delta/Spark deferred.
+- **Why:** same Copy engine as ADF/Fabric with no extra resource or identity; keeping infra out
+  of CD avoids storing the client IP / admin object ID / SQL password in GitHub and granting
+  the app RBAC Administrator.
+- **Consequences:** one environment only; CD needs a per-job Synapse firewall rule for the
+  runner IP. Details: [fabric_parity_plan.md](fabric_parity_plan.md).
+
 ### D6: Recover rejected NFIP records from JSONL in bronze (2026-11-16)
 - **Context:** 2 records (ids 8320694, 9053654) broke FEMA's server-side Parquet export and
   were saved by the downloader as JSONL in `_rejected/`.
