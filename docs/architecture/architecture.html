@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Medallion Synapse Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one reading column; two wide figures (data path, delivery path) then a mapping table. */
+  :root {
+    --bg: #f5f7f9;
+    --panel: #ffffff;
+    --fg: #17212b;
+    --muted: #5a6875;
+    --line: #c9d3dc;
+    --band: #eaf0f5;
+    --accent: #0f6f8f;      /* the live data path */
+    --planned: #a3620a;     /* planned / not built */
+    --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+    --body: "Inter", "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10161c; --panel: #172029; --fg: #e3e9ef; --muted: #93a2b0;
+      --line: #34434f; --band: #1b2731; --accent: #4fb6d6; --planned: #e0a24a; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10161c; --panel: #172029; --fg: #e3e9ef; --muted: #93a2b0;
+    --line: #34434f; --band: #1b2731; --accent: #4fb6d6; --planned: #e0a24a; color-scheme: dark;
+  }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--body); line-height: 1.55;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 1120px; margin: 0 auto; padding-block: 40px 64px; display: grid; gap: 40px; }
+  header { display: grid; gap: 8px; max-width: 70ch; }
+  .eyebrow { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font: 600 clamp(28px, 4vw, 40px)/1.1 var(--display); margin: 0; text-wrap: balance; }
+  h2 { font: 600 20px/1.2 var(--display); margin: 0; }
+  p { margin: 0; }
+  .lede { color: var(--muted); }
+  section { display: grid; gap: 14px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend svg { width: 34px; height: 10px; }
+  figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; }
+  .scroll { overflow-x: auto; }
+  .scroll svg { display: block; min-width: 860px; width: 100%; height: auto; color: var(--fg); }
+  figcaption { font-size: 14px; color: var(--muted); max-width: 80ch; }
+  code { font-family: var(--mono); font-size: .9em; }
+
+  /* SVG classes (styled from the page so both themes work) */
+  .band { fill: var(--band); stroke: none; }
+  .box { fill: var(--panel); stroke: currentColor; stroke-width: 1.2; }
+  .box.plan { stroke: var(--planned); stroke-dasharray: 5 4; }
+  .box.hot { stroke: var(--accent); stroke-width: 2; }
+  .t { fill: currentColor; font: 600 13px var(--body); }
+  .s { fill: var(--muted); font: 400 11.5px var(--mono); }
+  .f { fill: var(--muted); font: italic 400 11px var(--body); }
+  .bt { fill: var(--muted); font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+  .e { fill: none; stroke: currentColor; stroke-width: 1.3; }
+  .e.hot { stroke: var(--accent); stroke-width: 2; }
+  .e.plan { stroke: var(--planned); stroke-dasharray: 5 4; }
+  .el { fill: currentColor; font: 500 11px var(--body); }
+  .el.hot { fill: var(--accent); }
+  .el.plan { fill: var(--planned); }
+  .ah { fill: currentColor; }
+  .ah.hot { fill: var(--accent); }
+  .ah.plan { fill: var(--planned); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font: 600 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .pill { display: inline-block; font: 500 12px var(--mono); padding: 2px 8px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+  .pill.live { color: var(--accent); }
+  .pill.wip { color: var(--planned); }
+  .pill.none { color: var(--muted); }
+</style>
+<style>body{margin:0;font-size:14px}</style>
+</head>
+<body>
+
+<main>
+  <header>
+    <div class="eyebrow">rg-medallion-lab · centralus · as of 2026-11-17</div>
+    <h1>Medallion Synapse Lab</h1>
+    <p class="lede">OpenFEMA flood-claim data moving bronze → silver → gold on Synapse serverless SQL over ADLS Gen2, laid out so each piece maps onto a Microsoft Fabric equivalent.</p>
+  </header>
+
+  <div class="legend" aria-label="Legend">
+    <span><svg viewBox="0 0 34 10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" stroke="var(--accent)" stroke-width="2"/></svg>Live data path</span>
+    <span><svg viewBox="0 0 34 10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" stroke="currentColor" stroke-width="1.3"/></svg>Built</span>
+    <span><svg viewBox="0 0 34 10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" stroke="var(--planned)" stroke-width="1.3" stroke-dasharray="5 4"/></svg>Planned, not built</span>
+    <span><i>≈ Fabric equivalent</i></span>
+  </div>
+
+  <section>
+    <h2>Data path</h2>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 1100 400" role="img" aria-label="OpenFEMA data is pulled by a Python script (a Synapse pipeline is planned) into ADLS landing as Parquet. Bronze views read landing in place with OPENROWSET. Planned silver and gold CETAS steps write Parquet back to the lake, and gold feeds a planned Power BI report.">
+          <defs>
+            <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah hot"/></marker>
+            <marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah plan"/></marker>
+          </defs>
+
+          <!-- Serverless SQL band -->
+          <rect class="band" x="360" y="16" width="570" height="150" rx="8"/>
+          <text class="bt" x="376" y="38">Synapse serverless SQL · database lab</text>
+          <text class="f" x="914" y="38" text-anchor="end">≈ Lakehouse SQL analytics endpoint</text>
+
+          <rect class="box hot" x="380" y="56" width="160" height="90" rx="6"/>
+          <text class="t" x="460" y="82" text-anchor="middle">bronze views</text>
+          <text class="s" x="460" y="102" text-anchor="middle">nfip_claims 1,022,329</text>
+          <text class="s" x="460" y="118" text-anchor="middle">declarations 70,599</text>
+          <text class="s" x="460" y="134" text-anchor="middle">+ qa.checks 44/44</text>
+
+          <rect class="box plan" x="575" y="56" width="160" height="90" rx="6"/>
+          <text class="t" x="655" y="86" text-anchor="middle">silver tables</text>
+          <text class="s" x="655" y="106" text-anchor="middle">typed, latest</text>
+          <text class="s" x="655" y="122" text-anchor="middle">ingest_date per id</text>
+
+          <rect class="box plan" x="770" y="56" width="140" height="90" rx="6"/>
+          <text class="t" x="840" y="86" text-anchor="middle">gold star</text>
+          <text class="s" x="840" y="106" text-anchor="middle">fact_claims,</text>
+          <text class="s" x="840" y="122" text-anchor="middle">dim_* tables</text>
+
+          <!-- Lake band -->
+          <rect class="band" x="360" y="210" width="570" height="170" rx="8"/>
+          <text class="bt" x="376" y="368">ADLS Gen2 · medlabgkledu5w / lake</text>
+          <text class="f" x="914" y="368" text-anchor="end">≈ OneLake</text>
+
+          <rect class="box hot" x="380" y="232" width="160" height="104" rx="6"/>
+          <text class="t" x="460" y="258" text-anchor="middle">landing/</text>
+          <text class="s" x="460" y="278" text-anchor="middle">&lt;dataset&gt;/</text>
+          <text class="s" x="460" y="294" text-anchor="middle">ingest_date=…/</text>
+          <text class="s" x="460" y="310" text-anchor="middle">Parquet, immutable</text>
+          <text class="f" x="460" y="327" text-anchor="middle">≈ Lakehouse Files</text>
+
+          <rect class="box plan" x="575" y="232" width="160" height="104" rx="6"/>
+          <text class="t" x="655" y="270" text-anchor="middle">silver/</text>
+          <text class="s" x="655" y="290" text-anchor="middle">Parquet</text>
+          <text class="f" x="655" y="327" text-anchor="middle">≈ Lakehouse Tables</text>
+
+          <rect class="box plan" x="770" y="232" width="140" height="104" rx="6"/>
+          <text class="t" x="840" y="270" text-anchor="middle">gold/</text>
+          <text class="s" x="840" y="290" text-anchor="middle">Parquet</text>
+          <text class="f" x="840" y="327" text-anchor="middle">≈ Lakehouse Tables</text>
+
+          <!-- Source and ingestion -->
+          <rect class="box" x="16" y="250" width="124" height="66" rx="6"/>
+          <text class="t" x="78" y="278" text-anchor="middle">OpenFEMA API</text>
+          <text class="s" x="78" y="298" text-anchor="middle">REST, paged</text>
+
+          <rect class="box hot" x="180" y="214" width="150" height="58" rx="6"/>
+          <text class="t" x="255" y="238" text-anchor="middle">download_openfema</text>
+          <text class="s" x="255" y="258" text-anchor="middle">+ upload_landing</text>
+
+          <rect class="box plan" x="180" y="296" width="150" height="58" rx="6"/>
+          <text class="t" x="255" y="320" text-anchor="middle">PL_ingest pipeline</text>
+          <text class="f" x="255" y="340" text-anchor="middle">≈ Fabric Data Factory</text>
+
+          <polyline class="e hot" points="140,283 160,283 160,243 178,243" marker-end="url(#ah)"/>
+          <polyline class="e plan" points="140,283 160,283 160,325 178,325" marker-end="url(#ap)"/>
+          <polyline class="e hot" points="330,243 352,243 352,270 378,270" marker-end="url(#ah)"/>
+          <text class="el hot" x="345" y="196" text-anchor="middle">Parquet +</text>
+          <text class="el hot" x="345" y="209" text-anchor="middle">_manifest</text>
+          <polyline class="e plan" points="330,325 352,325 352,300 378,300" marker-end="url(#ap)"/>
+
+          <!-- Medallion hops -->
+          <line class="e hot" x1="460" y1="232" x2="460" y2="149" marker-end="url(#ah)"/>
+          <text class="el hot" x="468" y="186">OPENROWSET</text>
+          <text class="el hot" x="468" y="200">reads in place</text>
+
+          <line class="e plan" x1="540" y1="101" x2="572" y2="101" marker-end="url(#ap)"/>
+          <text class="el plan" x="556" y="92" text-anchor="middle">CETAS</text>
+          <line class="e plan" x1="655" y1="146" x2="655" y2="229" marker-end="url(#ap)"/>
+          <text class="el plan" x="663" y="192">writes</text>
+
+          <line class="e plan" x1="735" y1="101" x2="767" y2="101" marker-end="url(#ap)"/>
+          <text class="el plan" x="751" y="92" text-anchor="middle">CETAS</text>
+          <line class="e plan" x1="840" y1="146" x2="840" y2="229" marker-end="url(#ap)"/>
+          <text class="el plan" x="848" y="192">writes</text>
+
+          <!-- Report -->
+          <rect class="box plan" x="966" y="56" width="120" height="90" rx="6"/>
+          <text class="t" x="1026" y="86" text-anchor="middle">Power BI</text>
+          <text class="s" x="1026" y="104" text-anchor="middle">Desktop</text>
+          <text class="f" x="1026" y="124" text-anchor="middle">≈ Direct Lake</text>
+          <line class="e plan" x1="910" y1="101" x2="963" y2="101" marker-end="url(#ap)"/>
+          <text class="el plan" x="938" y="92" text-anchor="middle">Entra</text>
+        </svg>
+      </div>
+      <figcaption>Only the blue path exists today. Bronze copies nothing: its views read the landing Parquet where it lies and take <code>ingest_date</code> from the folder name. Silver and gold will be CETAS, which writes new Parquet to the lake and can't overwrite, so every rebuild deletes the folder first (<code>/rebuild</code>).</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Delivery path</h2>
+    <figure>
+      <div class="scroll">
+        <svg viewBox="0 0 1110 320" role="img" aria-label="Changes reach main only through pull requests that pass CI. Synapse Studio saves commit to feature branches. Publish from main deploys pipelines to the live workspace and writes ARM templates to workspace_publish. Infrastructure is deployed manually with deploy.ps1, and SQL runs through run_sql.py; a CD job is planned.">
+          <defs>
+            <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah"/></marker>
+            <marker id="bp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah plan"/></marker>
+          </defs>
+
+          <!-- Clients -->
+          <rect class="box" x="16" y="40" width="150" height="60" rx="6"/>
+          <text class="t" x="91" y="66" text-anchor="middle">Synapse Studio</text>
+          <text class="s" x="91" y="86" text-anchor="middle">browser, Git mode</text>
+
+          <rect class="box" x="16" y="150" width="150" height="70" rx="6"/>
+          <text class="t" x="91" y="176" text-anchor="middle">Your machine</text>
+          <text class="s" x="91" y="196" text-anchor="middle">VS Code, az,</text>
+          <text class="s" x="91" y="210" text-anchor="middle">Claude Code</text>
+
+          <!-- GitHub -->
+          <rect class="band" x="250" y="30" width="440" height="230" rx="8"/>
+          <text class="bt" x="266" y="50">GitHub · medallion-synapse-lab</text>
+
+          <rect class="box" x="270" y="62" width="160" height="50" rx="6"/>
+          <text class="t" x="350" y="84" text-anchor="middle">feature branches</text>
+          <text class="s" x="350" y="102" text-anchor="middle">type/short-desc</text>
+
+          <rect class="box" x="500" y="62" width="170" height="50" rx="6"/>
+          <text class="t" x="585" y="84" text-anchor="middle">main</text>
+          <text class="s" x="585" y="102" text-anchor="middle">ruleset protect-main</text>
+
+          <rect class="box" x="270" y="190" width="160" height="50" rx="6"/>
+          <text class="t" x="350" y="212" text-anchor="middle">Actions CI</text>
+          <text class="s" x="350" y="230" text-anchor="middle">ruff · bicep · SQL lint</text>
+
+          <rect class="box" x="500" y="190" width="170" height="50" rx="6"/>
+          <text class="t" x="585" y="212" text-anchor="middle">workspace_publish</text>
+          <text class="s" x="585" y="230" text-anchor="middle">ARM, machine-written</text>
+
+          <!-- Azure -->
+          <rect class="band" x="760" y="30" width="320" height="230" rx="8"/>
+          <text class="bt" x="776" y="50">Azure · rg-medallion-lab</text>
+
+          <rect class="box" x="780" y="62" width="280" height="44" rx="6"/>
+          <text class="t" x="920" y="82" text-anchor="middle">Infra: storage, workspace, RBAC</text>
+          <text class="s" x="920" y="98" text-anchor="middle">Bicep</text>
+
+          <rect class="box" x="780" y="126" width="280" height="44" rx="6"/>
+          <text class="t" x="920" y="146" text-anchor="middle">Workspace live artifacts</text>
+          <text class="s" x="920" y="162" text-anchor="middle">pipelines, linked services</text>
+
+          <rect class="box" x="780" y="190" width="280" height="44" rx="6"/>
+          <text class="t" x="920" y="210" text-anchor="middle">Serverless SQL · lab</text>
+          <text class="s" x="920" y="226" text-anchor="middle">views, CETAS, qa</text>
+
+          <!-- Edges -->
+          <line class="e" x1="166" y1="72" x2="267" y2="80" marker-end="url(#b)"/>
+          <text class="el" x="214" y="66" text-anchor="middle">Save = commit</text>
+
+          <polyline class="e" points="166,170 220,170 220,100 267,100" marker-end="url(#b)"/>
+          <text class="el" x="226" y="140">push</text>
+
+          <line class="e" x1="430" y1="80" x2="497" y2="80" marker-end="url(#b)"/>
+          <text class="el" x="465" y="73" text-anchor="middle">PR, squash</text>
+
+          <line class="e" x1="350" y1="112" x2="350" y2="187" marker-end="url(#b)"/>
+          <text class="el" x="358" y="154">on pull_request</text>
+
+          <polyline class="e" points="430,215 465,215 465,100 497,100" marker-end="url(#b)"/>
+          <text class="el" x="472" y="170">required</text>
+          <text class="el" x="472" y="184">checks</text>
+
+          <line class="e" x1="585" y1="112" x2="585" y2="187" marker-end="url(#b)"/>
+          <text class="el" x="593" y="154">Publish: ARM</text>
+
+          <polyline class="e" points="670,74 740,74 740,148 777,148" marker-end="url(#b)"/>
+          <text class="el" x="705" y="67" text-anchor="middle">Publish</text>
+
+          <polyline class="e plan" points="670,100 718,100 718,212 777,212" marker-end="url(#bp)"/>
+          <text class="el plan" x="712" y="128" text-anchor="end">CD on merge</text>
+
+          <polyline class="e" points="110,220 110,282 920,282 920,237" marker-end="url(#b)"/>
+          <text class="el" x="500" y="276" text-anchor="middle">run_sql.py · Entra token</text>
+
+          <polyline class="e" points="70,220 70,302 1096,302 1096,84 1063,84" marker-end="url(#b)"/>
+          <text class="el" x="500" y="296" text-anchor="middle">deploy.ps1 · Bicep, manual, asks first</text>
+        </svg>
+      </div>
+      <figcaption>Everything reaches <code>main</code> by a PR that passed CI, including Studio work, because Studio commits as you. Publish from <code>main</code> is the only way pipelines go live (≈ Fabric Git integration). Infra stays a manual <code>deploy.ps1</code>, so no IP, object ID or password is stored in GitHub. The dashed CD job (plan step 4) will run changed <code>sql/</code> files and the checks after a merge.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Fabric mapping and status</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Fabric</th><th>This lab</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>OneLake</td><td>ADLS Gen2 <code>medlabgkledu5w</code>, container <code>lake</code></td><td><span class="pill live">live</span></td></tr>
+          <tr><td>Lakehouse Files</td><td><code>landing/</code>, snapshot 2026-11-16 (187 files)</td><td><span class="pill live">live</span></td></tr>
+          <tr><td>SQL analytics endpoint</td><td>Serverless SQL, database <code>lab</code>, bronze views + qa checks</td><td><span class="pill live">live</span></td></tr>
+          <tr><td>Lakehouse Tables</td><td>Silver and gold CETAS Parquet</td><td><span class="pill wip">silver design §1</span></td></tr>
+          <tr><td>Workspace Git integration</td><td>Synapse Git → this repo, root <code>/synapse</code></td><td><span class="pill wip">deployed, PR pending</span></td></tr>
+          <tr><td>Deployment pipelines</td><td>GitHub Actions CI on PR (step 1); CD on merge (step 4)</td><td><span class="pill live">CI live</span></td></tr>
+          <tr><td>Data Factory</td><td>Synapse pipelines, metadata-driven ingest (step 3)</td><td><span class="pill wip">planned</span></td></tr>
+          <tr><td>Direct Lake report</td><td>Power BI Desktop on the serverless endpoint</td><td><span class="pill wip">planned</span></td></tr>
+          <tr><td>Notebooks + Delta</td><td>Spark pool + Delta (step 5, optional)</td><td><span class="pill none">deferred, cost</span></td></tr>
+          <tr><td>Shortcuts, mirroring, capacity</td><td>No equivalent</td><td><span class="pill none">n/a</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

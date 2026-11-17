@@ -29,6 +29,17 @@ jobs:
         run: ruff format --check scripts .claude/hooks
       - name: SQL lint (repo conventions)
         run: python scripts/lint_sql.py
+      - name: No inline secrets in Synapse JSON (public repo, D9)
+        # Key Vault references are objects, so a plain string value here means an inline secret.
+        # Connection strings are fine (the default SQL linked service has one) unless they embed one.
+        run: |
+          if grep -rEin --include='*.json' \
+            -e '"(accountKey|sasUri|sasToken|password|servicePrincipalKey)"[[:space:]]*:[[:space:]]*"' \
+            -e '(AccountKey|SharedAccessSignature|Password|Pwd)=[^;"@]' \
+            synapse/; then
+            echo "::error::inline secret in synapse/ JSON; use managed identity or Key Vault"
+            exit 1
+          fi
 
   bicep:
     name: bicep build

@@ -119,7 +119,21 @@ patterns from the earlier draft still apply; only "ADF" now reads "Synapse pipel
    `ci/pr-check-workflow`.
 2. **Synapse Git integration** with this repo (Bicep `workspaceRepositoryConfiguration`, root
    folder `synapse/`, collaboration branch `main`); build pipelines in Synapse Studio, saved as
-   JSON here. Publish writes ARM templates to the `workspace_publish` branch.
+   JSON here. Publish writes ARM templates to the `workspace_publish` branch. Details: D9.
+   Built pending verification on `feat/synapse-git-integration`, in this order:
+   1. Bicep + docs on the branch; `deploy.ps1 -WhatIf` (done 2026-11-17: the only workspace
+      change is the repo config).
+   2. User approves, then `deploy.ps1` from the branch.
+   3. User opens Studio, authorizes the Azure Synapse GitHub OAuth app, confirms Git mode on
+      `main`, root `/synapse`.
+   4. Merge the infra PR (CI green).
+   5. Round trip off the updated `main`: in a Studio feature branch save a zero-cost artifact
+      (SQL script `smoke_select1`, `SELECT 1`, never run) -> PR -> squash-merge -> Publish from
+      `main`. Verify with `gh`: `synapse/sqlscript/smoke_select1.json` on `main`, branch
+      `workspace_publish` with `syn-medlab-gkledu5w/TemplateForWorkspace.json`; artifact
+      visible in live mode. Then delete it the same way (proves deletes publish too).
+   6. Small docs PR marking step 2 verified. After the next routine `deploy.ps1`, check Studio
+      still shows the correct publish state (the PUT carries no `lastCommitId`).
 3. **Ingestion pipeline** (section 3): upload `config/sources.json` manually, test into
    `samples/pipeline_test/`, promote to `landing/` once it matches the script snapshot.
 4. **CD on merge** (section 2): app registration + federated credential, SQL user, firewall

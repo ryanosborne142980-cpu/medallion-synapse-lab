@@ -31,6 +31,12 @@ param deployBudget bool = true
 @description('Monthly budget amount in the subscription currency.')
 param budgetAmount int = 10
 
+@description('GitHub owner for Synapse Git integration. Empty = never configure (fresh deploys only); to disconnect a connected workspace use Studio, see D9.')
+param gitAccountName string = ''
+
+@description('GitHub repository for Synapse Git integration (collaboration branch main, root folder /synapse).')
+param gitRepositoryName string = ''
+
 @description('First day of the current month; budgets must start on the first of a month.')
 param budgetStartDate string = utcNow('yyyy-MM-01')
 
@@ -82,6 +88,8 @@ module lakehouse 'modules/lakehouse.bicep' = {
     userObjectId: userObjectId
     sqlAdminPassword: sqlAdminPassword
     deploySparkPool: deploySparkPool
+    gitAccountName: gitAccountName
+    gitRepositoryName: gitRepositoryName
   }
 }
 

@@ -8,3 +8,7 @@ param userObjectId = readEnvironmentVariable('LAB_USER_OBJECT_ID')
 param sqlAdminPassword = readEnvironmentVariable('LAB_SQL_ADMIN_PASSWORD')
 param deploySparkPool = bool(readEnvironmentVariable('LAB_DEPLOY_SPARK', 'false'))
 param deployBudget = bool(readEnvironmentVariable('LAB_DEPLOY_BUDGET', 'true'))
+
+// Synapse Git integration (D9). Committed on purpose: the repo is public, so owner/repo are not secret.
+param gitAccountName = 'ryanosborne142980-cpu'
+param gitRepositoryName = 'medallion-synapse-lab'

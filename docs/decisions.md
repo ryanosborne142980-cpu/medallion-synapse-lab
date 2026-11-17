@@ -19,6 +19,29 @@ Record each design decision when it is made. Newest first. Keep entries short.
 
 ## Decisions
 
+### D9: Synapse Git integration via Bicep; protected main (2026-11-17)
+- **Context:** Fabric-parity step 2 (D7): pipeline work must live in Git, like a Fabric
+  workspace's Git integration.
+- **Options:** A) connect once in Studio (click-ops); B) `workspaceRepositoryConfiguration` in
+  Bicep (GitHub, collaboration branch `main`, root `/synapse`).
+- **Decision:** B. `main` is protected by the GitHub ruleset `protect-main`: PR required (0
+  approvals, since a sole author can't self-approve), both CI checks required on an up-to-date
+  branch, no force-push or deletion, no bypass (applies to the user, and so to Studio). Studio
+  work happens in Studio feature branches, then a PR squash-merged with a Conventional Commit
+  title, then **Publish from `main`** (the only deploy path for Synapse artifacts).
+  `workspace_publish` holds machine-generated ARM commits outside the commit convention; never
+  protect, edit or merge it. Pipeline JSON saved via Git counts as "everything as code".
+  Linked services use the workspace managed identity only (Key Vault if a source ever needs a
+  secret); CI fails on inline secrets in `synapse/` because the repo is public.
+- **Why:** the connection survives teardown/redeploy as code; protecting `main` keeps "merged
+  by PR" true even though Studio commits as the user.
+- **Consequences:** a redeployed workspace's live mode is empty: open Studio, re-authorize
+  GitHub if asked, Publish from `main`. Empty `gitAccountName` means "never configure" (fresh
+  deploys only); whether it disconnects a connected workspace is unverified, so disconnect in
+  Studio (Manage > Git configuration). Studio commits use the GitHub account's email, which may
+  differ from the local git identity. The workspace PUT now also sets
+  `azureADOnlyAuthentication: true` so a redeploy never briefly re-enables SQL auth.
+
 ### D8: CI SQL lint is a repo-rules linter, not sqlfluff (2026-11-17)
 - **Context:** D7's CI step needed a static SQL check; the plan left `sqlfluff` vs parse-only
   open.
