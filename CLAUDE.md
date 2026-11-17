@@ -60,8 +60,9 @@ to build it as written, one step per PR. Step 1 (CI on PRs, D8) merged in PR #2 
 GitHub. `main` is protected by ruleset `protect-main` (D9). Step 2 (Synapse Git integration,
 D9) is on `feat/synapse-git-integration` (uncommitted) and **deployed 2026-11-17** from that
 branch: workspace repo config verified live (`main`, `/synapse`), Entra-only still on,
-`qa.checks` 0 FAIL. User accepted the Synapse GitHub OAuth scope. Next, per the plan's step 2
-order: Studio OAuth + Git mode check, commit/PR/merge, smoke round trip.
+`qa.checks` 0 FAIL. User accepted the Synapse GitHub OAuth scope and confirmed Studio shows
+Git mode on `main`. Next: merge the step-2 PR, smoke round trip (plan step 2.5). Step 3
+(ingestion pipeline) build plan is in plan-reviewer; it branches off `main` after step 2 merges.
 
 ## Core Principles
 
