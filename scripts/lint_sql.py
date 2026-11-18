@@ -3,6 +3,10 @@
 Usage:
     python scripts/lint_sql.py              # lint sql/*.sql
     python scripts/lint_sql.py sql/20_silver.sql
+    python scripts/lint_sql.py --fix        # apply safe fixes, then lint
+    python scripts/lint_sql.py --fix sql/20_silver.sql
+
+Use --fix to apply safe, mechanical corrections before reporting remaining problems.
 
 Not a general T-SQL parser: sqlfluff's tsql dialect rejects valid Synapse syntax (external file
 formats, CETAS), so this enforces only the CLAUDE.md conventions that break deploys or
@@ -24,7 +28,8 @@ HOSTED_URL = re.compile(
     r"https://(?!\$\()([^./'\s]+)\.(?:dfs|blob)\.core\.windows\.net", re.IGNORECASE
 )
 SQL_HOST = re.compile(
-    r"\b([\w-]+)(?:-ondemand)?\.sql\.azuresynapse\.net", re.IGNORECASE
+    r"(?<!\$\()(?<![\w.-])([\w][\w-]*?)(-ondemand)?\.sql\.azuresynapse\.net",
+    re.IGNORECASE,
 )
 USE_STMT = re.compile(r"^[ \t]*USE\s+\[?\w+", re.IGNORECASE | re.MULTILINE)
 SELECT_STAR = re.compile(
@@ -86,6 +91,33 @@ def strip(sql: str, *, strings: bool) -> str:
 
 def line_of(text: str, pos: int) -> int:
     return text.count("\n", 0, pos) + 1
+
+
+def fix(path: Path) -> int:
+    """Apply safe mechanical fixes and return the number of replacements made."""
+    raw = path.read_text(encoding="utf-8")
+    no_comments = strip(raw, strings=False)
+    code = strip(raw, strings=True)
+    edits: list[tuple[int, int, str]] = []
+
+    edits.extend(
+        (m.start(), m.end(), "CREATE OR ALTER VIEW") for m in CREATE_VIEW.finditer(code)
+    )
+    edits.extend(
+        (m.start(1), m.end(1), "$(storage_account)")
+        for m in HOSTED_URL.finditer(no_comments)
+    )
+    edits.extend(
+        (m.start(1), m.end(1), "$(workspace)") for m in SQL_HOST.finditer(no_comments)
+    )
+
+    if not edits:
+        return 0
+
+    for start, end, replacement in sorted(edits, reverse=True):
+        raw = raw[:start] + replacement + raw[end:]
+    path.write_bytes(raw.encode("utf-8"))
+    return len(edits)
 
 
 def lint(path: Path) -> list[str]:
@@ -157,11 +189,20 @@ def lint(path: Path) -> list[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("files", nargs="*", type=Path, help="default: sql/*.sql")
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="apply safe mechanical fixes before linting",
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parent.parent
     files = args.files or sorted((root / "sql").glob("*.sql"))
     if not files:
         raise SystemExit("no .sql files found")
+
+    fixed = sum(fix(f) for f in files) if args.fix else 0
+    if fixed:
+        print(f"lint_sql: applied {fixed} safe fix(es)")
 
     problems = [p for f in files for p in lint(f)]
     for p in problems:
